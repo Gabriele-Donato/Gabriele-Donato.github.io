@@ -3,40 +3,74 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ site.title }}</title>
+  <title>{{ page.title | default: site.title }}</title>
   <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
 </head>
 <body>
-  <header class="page-header" style="background-image: url({{ page.image | prepend: site.baseurl }});">
+
+  <!-- Transparent floating hamburger menu button -->
+  <button id="mobile-nav-toggle" class="mobile-nav-toggle" aria-label="Menu">
+    <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+  </button>
+
+  <div class="nav-overlay" id="nav-overlay"></div>
+  <div class="mobile-nav-drawer" id="mobile-nav-drawer">
+    <div class="drawer-title">MENU</div>
+    <ul>
+      <li><a href="{{ '/' | relative_url }}">HOME</a></li>
+      <li><a href="{{ '/about/' | relative_url }}">ABOUT</a></li>
+      <li><a href="{{ '/resources/' | relative_url }}">RESOURCES</a></li>
+    </ul>
+  </div>
+
+  <header class="page-header" style="background-image: url('{{ page.image | relative_url }}');">
     <div class="header-content">
       <div class="site-title">
-        <h4><a href="{{ '/' | relative_url }}" style="color:white;text-decoration:none;">{{ site.title }}</a></h4>
+        <h4>
+          <a href="{{ '/' | relative_url }}" style="color:white;text-decoration:none;">
+            {{ site.title }}
+          </a>
+        </h4>
       </div>
       <nav>
         <ul>
           <li><a href="{{ '/about/' | relative_url }}" style="text-decoration:none">ABOUT</a></li>
-	  <li><a href="{{ '/resources/' | relative_url}}" style="text-decoration:none">RESOURCES</a></li>
-          <!--<li><a href="{{ '/projects/' | relative_url }}" style="text-decoration:none">Projects</a></li>
-          <li><a href="{{ '/publications/' | relative_url }}" style="text-decoration:none">Publications</a></li> -->
+          <li><a href="{{ '/resources/' | relative_url }}" style="text-decoration:none">RESOURCES</a></li>
         </ul>
       </nav>
     </div>
   </header>
-  
+
   <main class="main-content">
-    <article class="post">
-      <header class="post-header">
-        <h1 class="post-title">{{ page.title }}</h1>
-        <p class="post-date" style="text-align:center;">{{ page.date | date: "%B %d, %Y" }}</p>
-      </header>
-      <div class="post-content">
-        {{ content }}
-      </div>
-    </article>
+    {{ content }}
   </main>
-  
+
   <footer class="site-footer">
-    <p>Contact me at: <a href="mailto:gabriele.donato52@gmail.com">gabriele.donato52@gmail.com</a></p>
+    <p>Contact me at: <a href="mailto:{{ site.email }}">{{ site.email }}</a></p>
   </footer>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const toggleBtn = document.getElementById("mobile-nav-toggle");
+      const drawer = document.getElementById("mobile-nav-drawer");
+      const overlay = document.getElementById("nav-overlay");
+
+      if (toggleBtn && drawer && overlay) {
+        function closeDrawer() {
+          drawer.classList.remove("open");
+          overlay.classList.remove("open");
+          document.body.style.overflow = "";
+        }
+
+        toggleBtn.addEventListener("click", function() {
+          drawer.classList.toggle("open");
+          overlay.classList.toggle("open");
+          document.body.style.overflow = drawer.classList.contains("open") ? "hidden" : "";
+        });
+
+        overlay.addEventListener("click", closeDrawer);
+      }
+    });
+  </script>
 </body>
 </html>
