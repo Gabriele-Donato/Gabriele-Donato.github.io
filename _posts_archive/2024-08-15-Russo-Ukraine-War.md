@@ -1,0 +1,340 @@
+---
+layout: post
+title: "When Enough is Enough: A Study of Retaliatory Patterns in the Russo-Ukraine War Using a Hidden Markov Model"
+date: 2024-08-15 10:00:00 +0200
+categories: jekyll update
+excerpt: "Hidden Markov Models identify a class of models used for estimating the latent states of time-series data."
+image: /assets/images/rambosson.jpg
+---
+
+<p>Hidden Markov Models identify a class of models used for estimating
+the latent states of time-series data. At the end of the estimation
+process, a distribution over each latent state is returned so that, for
+each point in time, it is possible to judge what hidden state has
+produced the observations with the highest probability. This justifies
+the position of the code in the time-series repository on GitHub.</p>
+<p>The model is both intuitive and powerful, two characteristics that
+make it interpretable and suited in decision-making situations.</p>
+<h2><strong>The Forward-Back Algorithm</strong></h2>
+<p>In order to fit the model, it is necessary to use an algorithm called
+“Forward-Back”, or “Baum-Welch.” Given a time series of observations,
+the idea of the algorithm is that of moving forward in time predicting
+the probability of the next element of the sequence under each latent
+state up to a given time <span class="math inline">\(t \in \{
+1,2,3,...,T\}\)</span>. Then, to move backward, from time <span
+class="math inline">\(T\)</span> trying to predict the rest of the
+sequence.</p>
+<p>The process seems to be implying that knowing <em>a posteriori</em>
+how things have unfolded is not the same of observing and forming
+beliefs when we are embedded in the event. Indeed, this appeals to the
+human experience of time sequences, and it is precisely the reason why
+history requires events to have been at least partially concluded before
+its arrival: when the event is ongoing it is not straightforward to
+predict how it will unfold, but from the vantage point of today it is
+possible to judge quite accurately whether it was really unexpected that
+Adolf Hitler would pursue an aggressive policy given that he had
+attacked Poland.<mark></mark></p>
+<p>The model puts us in an ambiguous state, both as in-person observers
+and scholars of the past. These two actors are independent, and to
+obtain the final probability of the observed sequence under each state
+it suffices to multiply the forward and backward estimates and normalize
+them in the <span class="math inline">\(\lbrack 0,1\rbrack\)</span>
+interval.</p>
+<p>A formal derivation of the model would use a theorem known as
+“d-separation.” I will derive it more qualitatively, appealing to the
+“Markovian” property of the graph, characterized as the dependency of
+any given state solely on the preceding one. I decided not to delve into
+the technicalities, as I plan to produce a comprehensive introduction
+spanning from probability to statistics, and from statistics to
+causality.</p>
+<p>What remains to be clarified is the meaning of the asymmetry between
+the forward and backward steps, and how this is interpreted in a
+quantitative way.</p>
+<h2><strong>The forward pass</strong></h2>
+<p>Given a set of possible latent states <span class="math inline">\(s
+\in S\)</span> , let’s define a set of <em>paths</em> <span
+class="math inline">\(p \in P\)</span> that describes how the system can
+reach one of the latent states. We ask what is the probability of the
+observations up to a certain point in time. Note that we compute this
+probability for all the possible paths that can lead to a state.</p>
+<p><mark></mark></p>
+<p><span class="math display">\[p(x_{1:t},u_{t}^{s}) = \sum_{p \in
+P}p(x_{t}|u_{t}^{s})p(u_{t}^{s}|u_{t - 1}^{s})p(x_{1:t - 1},u_{t -
+1}^{s})\]</span></p>
+<p>If the above explanation sounds obscure, it is probably because the
+quantities in the expression have not been given a name. Firstly, note
+that the last joint probability distribution is the same as the one at
+the left of the equality sign: the relation is recursive and the
+observation only depends on the latent state! To emphasize this
+functional relationship one may write:</p>
+<p><span class="math display">\[\alpha_{t}(u_{t}) =
+p(x_{1:t},u_{t}^{s})\]</span></p>
+<p>The other quantities in the sum are interpreted quite easily: <span
+class="math inline">\(p(x_{t}|u_{t}^{s})\)</span> is the emission
+probability from the latent state to the observable quantity; <span
+class="math inline">\(p(u_{t}^{s}|u_{t - 1}^{s})\)</span> is the
+probability of transitioning from a state to the next, or remaining on
+the same state. Putting this two together yields the probability of
+every latent state by virtue of Bayes theorem, indeed:</p>
+<p><span class="math display">\[p(u_{t}^{s},x_{t}) = p(u_{t}^{s}|x_{t})
+\propto p(x_{t}|u_{t}^{s})p(u_{t}^{s}|u_{t - 1}^{s})\]</span></p>
+<p>This writing explains the meaning of the forward pass in terms of an
+estimation of latent states, as well as the necessity of initializing
+the emission probability of the observations and the transition
+probability between states to compute the quantity when the time is
+zero.</p>
+<p>Note that the formula can be used without problems until time <span
+class="math inline">\(t - 1\)</span>, when time <span
+class="math inline">\(t\)</span> gets estimated and the process stops.
+Put it differently, after the initialization there is always a future to
+be estimated.</p>
+<h2><strong>The backward pass</strong></h2>
+<p>The same concepts apply to the backward pass:</p>
+<p><span class="math display">\[p(x_{T:1},u_{T}^{s}) = \sum_{p \in
+P}p(x_{T}|u_{T}^{s})p(u_{T}|u_{T - 1})p(x_{T - 1:1},u_{T - 1}^{s})
+\approx \sum_{p \in P}p(x_{t + 1}|u_{t + 1}^{s})p(u_{t + 1}|u_{t -
+1})p(x_{t - 1:1},u_{t - 1}^{s})\]</span></p>
+<p>As before,</p>
+<p><span class="math display">\[\beta_{t + 1}(u_{t + 1}^{s}) = p(x_{t +
+1:1},u_{t + 1}^{s}) = p(x_{t + 1:1}|u_{t + 1}^{s})p(u_{t + 1}^{s}|u_{t -
+1}^{s})\]</span></p>
+<p>At time <span class="math inline">\(t = T\)</span>, <span
+class="math inline">\(\beta_{T + 1}(u_{T + 1}^{s})\)</span> is not
+defined because the observation <span class="math inline">\(x_{T +
+1}\)</span> does not exist, and the probability <span
+class="math inline">\(p(u_{T + 1}^{s}|x_{T + 1}) \propto p(x_{T +
+1}|u_{T + 1}^{s})p(u_{T + 1}^{s}|u_{T - 1})\)</span> cannot be computed.
+The last element of the series must be initialized or one, which makes
+<span class="math inline">\(\beta_{T + 1}(u_{T + 1}^{s})\)</span>
+neutral and correspond to the assumption that the last observation has
+been generated solely by the transition and emission probabilities.</p>
+<p>The latter remark gives a sense of how the forward and backward pass
+differ from a quantitative rather than qualitative perspective. As will
+be clear in the application, when the forward algorithm is initialized
+it is necessary to take into account both the first observation and an
+initial probability for the hidden states (recall that we need a hint
+about time <span class="math inline">\(t - 1\)</span> at every step.) On
+the other hand, in the backward part, the hidden state of the last
+observation is determined solely by the emission and transition
+probabilities, and no assumption about <span class="math inline">\(T +
+1\)</span>.</p>
+<h2><strong>Matrix notation</strong></h2>
+<p>In order to apply the model, it is possible to store the probability
+in matrix values. Assuming that there are two states and <span
+class="math inline">\(n\)</span> observations, <span
+class="math inline">\(\alpha\)</span> and <span
+class="math inline">\(\beta\)</span>, representing the probability of
+the hidden states given the observations, should be two <span
+class="math inline">\(2\ x\ n\)</span> matrices.</p>
+<p>Since the states are two, the transition matrix should be <span
+class="math inline">\(2\ x\ 2\)</span>, representing the probabilities
+<span class="math inline">\(p_{11},p_{12},p_{21},p_{22}\)</span>, where
+the indexes represent movement (e.g. transitioning from state 1 to 1
+means persistence.)</p>
+<p>Finally, the emission probability for the observations should be
+defined. A handy workaround with count data, is to use a cardinal
+encoding. In this way, the observations can be used as indexes of the
+emission matrix, which is a <span class="math inline">\(2\ x\ n\)</span>
+with the rows representing the hidden states, and the columns the
+emission probabilities. To obtain such an encoding, one possibility is
+setting thresholds for the counts based on quantiles, so that is the
+distribution of the data that tells us whether an observation is low,
+medium, or high—0, 1, 2 respectively.</p>
+<p>By way of example I provide the calculation for the forward pass (the
+backward pass is analogous.) Let’s call the transition and emission
+matrices <span class="math inline">\(T\)</span> and <span
+class="math inline">\(E\)</span>. At any time <span
+class="math inline">\(t\)</span>, <span
+class="math inline">\(\alpha_{t}\)</span> (and consequently also <span
+class="math inline">\(\alpha_{t - 1}\)</span>) is a <span
+class="math inline">\(1\ x\ 2\)</span> matrix, where each column is a
+hidden state. The first element of generic <span
+class="math inline">\(\alpha\)</span> represents the path in which the
+system does not move from state one or moves from state two to state one
+(i.e. all the ways in which the system can possibly reach the first
+state.) This results (first two factors) in a scalar quantity. The
+preceding quantity is multiplied to the emission probability of the
+observation for corresponding state (identified by the emission matrix
+rows.) The procedure is repeated iteratively for the second element of
+<span class="math inline">\(\alpha_{t}\)</span>, representing all the
+paths through which the system might reach state two.</p>
+<p><span class="math display">\[\alpha_{t}(u_{t}) = \alpha_{t - 1}(u_{t
+- 1})T\begin{bmatrix}
+p_{11} &amp; p_{12} \\
+p_{21} &amp; p_{22}
+\end{bmatrix}E\begin{bmatrix}
+e_{11} &amp; e_{12} &amp; e_{13} \\
+e_{21} &amp; e_{22} &amp; e_{23}
+\end{bmatrix}\]</span></p>
+<h2><strong>How it all started</strong></h2>
+<p>The model has been applied to a time series of articles scraped from
+the <em>Institute for the Study of War</em> (ISW.) Originally, the
+scraping project was born to showcase a data engineering pipeline, which
+can be seen on my GitHub repository.</p>
+<p>My pipeline scrapes the data asynchronously from the website, sends
+them to Apache Kafka and retrieves them through PySpark. Then the data
+can be stored in a variety of formats or printed on the screen. This
+allows the scraper to be executed daily and always send new data.</p>
+<p>However, the analytic part has become more interesting of the
+streaming architecture, on which I plan to keep working as I discover
+more advanced tools. For this reason, and also to make the article
+readable and consistent, I will be presenting only the application of
+the Hidden Markov Model.</p>
+<p>Moreover, in order to respect the taxonomy of my repository—where the
+data engineering projects and the Bayesian time-series codes are
+separated—I have developed the present application independently from
+the streaming architecture (even though the integration is almost
+immediate through PySpark’s “user defined functions.”)</p>
+<p>The attention on the development of a working pipeline had led me to
+focus on the count of the word “missile” through the articles, hoping
+that there might be a correlation between how much a word is used and
+the entity of Russian attacks on Ukrainian territory. This is a flawed
+approach under several perspectives: it assumes that the presence of the
+word is correlated to the entity of the attack, which is not necessarily
+true; it assumes that the attack should have come from Russia, ignoring
+that Ukraine is fighting too; it ignores the fact that attacks performed
+with missiles may be reported without reference to missiles.</p>
+<p>In addition to the above criticisms, I started wondering why someone
+should be interested in knowing whether a missile attack has happened or
+not. Certainly, knowing the probability that a <em>specific kind of
+missile</em> will be launched may be relevant, but what one really wants
+to know is whether the opponent is going to attack or not.</p>
+<p>Therefore, I started focusing on retaliatory patterns in the war, and
+specifically on Ukrainian retaliation to Russian attacks. I assume that
+there exist only two latent states: low propensity to retaliate, and
+high propensity to retaliate. I also assume that, fixed a time <span
+class="math inline">\(t\)</span> the observations fall under four
+categories: neither attacks <span class="math inline">\((0,0)\)</span>;
+Russia attacks and Ukraine does not <span
+class="math inline">\((1,0)\)</span>; Russia does not attack and Ukraine
+does <span class="math inline">\((0,1)\)</span>; both attack <span
+class="math inline">\((1,1)\)</span>.</p>
+<p>A strategist may be interested in some or all of this scenarios, and
+possibly run simulations in order to understand whether to expect a
+counter attack if an attack is performed. In this project I will explore
+the probability of joint attack at a given time when Russia attacks
+first. It should be noted that the analysis may be refined to an
+arbitrary level of detail (depending on the news source) by further
+categorizing the attacks, e.g. to cities, power plants, hospitals
+etc…</p>
+<p>What makes this project worth pursuing is that, the above “observed
+states of the system,” i.e. whether an attack was reported on a certain
+day, it is not straightforward to determine if it is the harbinger of a
+period of relative peace, or the start of a heated phase of the war. It
+should be useful to express this uncertainty in probability
+language.</p>
+<p><mark></mark></p>
+<h2><strong>Mining patterns from text</strong></h2>
+<p>The first obstacle is to mine patterns from the text articles. In
+particular, the interest lies in classifying the news in two bins
+depending on whether they report attacks from Russia, 
+Ukraine or both.</p>
+<p>It is possible to greatly simplify the task through the Python library <em>SpaCy</em> which allows for 
+the definition of general patterns to be matched with the raw data.</p>
+<p>In the present case, two patterns have been defined: one for Russia and one for Ukraine. The syntax 
+is straightforward, let's consider Russia: for the news to be classified as dealing with Russian attacks, 
+it is required that the word "russia" or "russian" should be followed by one in the list of "military",
+"troops" etc.. Moreover, the word Russia should be the subject of the sentence (and "Russian" the modifier of a noun
+that serves as a subject.) The lists called "LEMMA" are not closed:
+all the words belonging to the same lemma of any one of the elements of the list are included.</p>
+<pre>
+<code>
+russian_attack_matcher = Matcher(nlp.vocab)
+ukraine_attack_matcher = Matcher(nlp.vocab)
+
+russian_attack = [
+    {'LOWER': {'IN': ['russia', 'russian']}, 'DEP': {'IN': ['nsubj', 'amod']}},
+    {'LEMMA': {'IN': ['military', 'force', 'army', 'troops', 'missile']}, 'DEP': 'nsubj'},
+    {'LEMMA': {'IN':['attack', 'strike', 'damage', 'destroy', 'kill', 'cut']}},   
+]
+
+
+ukraine_attack = [
+        {'LOWER': {'IN': ['ukraine', 'ukrainian']}, 'DEP': {'IN': ['nsubj', 'amod']}},
+        {'LEMMA': {'IN': ['military', 'force', 'army', 'troops', 'missile']}, 'DEP': 'nsubj'},
+        {'LEMMA': {'IN':['attack', 'strike', 'damage', 'destroy', 'kill', 'cut']}},   
+]
+
+
+russian_attack_matcher.add('RussianAttack', patterns=[russian_attack])
+ukraine_attack_matcher.add('UkraineAttack', patterns=[ukraine_attack])
+</code>
+</pre>
+<p>I have limited the present application to the simplest possible case. For instance, words such as "offensive" and 
+noun phrases such as "the ongoing russian counteroffensive" are not considered. It is possible to address these 
+flaws in a flexible way throug the same method (as can be seen, the matcher accepts a list of patterns.)
+It would even be possible to use embeddings, i.e. a sentence vectorization that 
+represents the meaning of the sentences, and use the numerical features to
+understand what the articles are talking about with a higher understanding of 
+the nuances. Finally, proper names can be retrieved using NER (named entity recognition), 
+allowing for geospatial/subject-level analysis.</p>
+
+
+<h2><strong>Model application</strong></h2>
+<p>In order to apply the model, the outcome tuples defined above have 
+been encoded using cardinal numbers as shown in the table below.</p>
+
+
+<table>
+    <tr>
+        <th>Outcome (Russia, Ukraine)</th>
+        <th>Encoding</th>
+    </tr>
+    <tr>
+        <td>(0, 0)</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td>(0, 1)</td>
+        <td>1</td>
+    </tr>
+    <tr>
+        <td>(1, 0)</td>
+        <td>2</td>
+    </tr>
+    <tr>
+        <td>(1, 1)</td>
+        <td>3</td>
+    </tr>
+</table>
+
+
+
+
+<p>With reference to the transition matrix, the first state (index <span class="math inline">\(0\)</span>) 
+represents "low retaliation propensity", whereas the second state (index <span class="math inline">\(1\)</span>)
+represent the "high propensity to retaliate." The transition between states between states is defined in the matrix 
+<span class="math inline">\(T\)</span>. As can be seen from the below values, 
+the matrix encodes the belief that transitioning from the first to the second state (or all the way around),
+is less likely than remaining in the state of heated conflict or transitioning to it from a state of
+relative calm. Moreover, transitioning from high to low retaliation propensity is assumed to be less likely
+than transitioning from low to high. All these assumptions are arbitrary and may be changed according to 
+a more informed tuning of the parameter (e.g. on a susbet of the data.)</p>
+<p><span class="math display">\[T = \begin{bmatrix}
+0.3 &amp; 0.7 \\
+0.2 &amp; 0.8
+\end{bmatrix}\]</span></p>
+<p>The states should be linked through the emission matrix to the encoding of the 
+possible outcome tuple of the above table. Since the rows represent the states, the 
+initialization of the matrix below represents the belief that in a state of low retaliation
+propensity it is less likely to see observations of the tuple 3 (i.e. mutual attack.) The 
+same reasoning (with inverted probabilities) applies to the second row/state of the table.</p>
+<p><span class="math display">\[E = \begin{bmatrix}
+0.4 &amp; 0.3 &amp; 0.2 &amp; 0.1 \\
+0.1 &amp; 0.2 &amp; 0.2 &amp; 0.5
+\end{bmatrix}\]</span></p>
+<p>Notice how it is possible to alert the intelligence only when a specified probability threshold is overcome
+(last plot.) At the same time, it is possible to have a clear understanding of what state the war is in. Notice that 
+the observations and the states do not always coincide, with the states being longer or shorter than the periods in which the 
+attacks are observed.</p>
+
+<h3>Here the results!</h3>
+
+<p style="text-align:center"><img src="{{ '/assets/images/post_images/hidden_markov_model/RussoUkraineWar_Hmm.png' | relative_url }}"/></p>
+
+<h2><strong>References</strong></h2>
+
+<p>The following website provides a similar explanation of the algorithm. However, the present post provides a clearer and leaner tractation, and an original application to dichotomic data:</p>
+<p>Jana, A. (2019). <i>Forward and Backward Algorithm in Hidden Markov Model</i>. Available at: <a>https://adeveloperdiary.com/data-science/machine-learning/forward-and-backward-algorithm-in-hidden-markov-model/</a></p>
+<p>For additional materials, make sure to check out my notebook, where the code is made fully available.</p>
+<p>This is a very interesting project since it allows me to showcase a broad range of skills and therefore I am planning to go deeper into it in the near future.</p>
