@@ -93,10 +93,8 @@ hr { border: 0; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
   justify-content: space-between;
   gap: 16px;
   height: var(--topbar-h);
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0 5vw;
+  width: min(1120px, calc(100% - 60px));
+  margin: 0 auto;
 }
 
 /* Pages with no banner image: the bar can't be white-on-white */
@@ -107,16 +105,14 @@ body.no-hero .topbar {
   border-bottom: 1px solid var(--rule);
 }
 
-/* Balzac: hgroup h1 { font-size:18px; font-weight:700; letter-spacing:2px }
-   One notch larger here (19px) — set it to 18px for a literal match. */
 .brand {
   /* an <a>, not a heading — no default margin to fight */
   margin: 0;
   padding: 0;
   font-family: var(--font-sans);
-  font-size: 19px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: .08em;
   line-height: 1;                   /* keeps the optical centre honest */
   text-transform: uppercase;
   text-decoration: none;
@@ -124,29 +120,19 @@ body.no-hero .topbar {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: text-shadow .2s ease;
 }
+.brand:hover { color: inherit; opacity: .75; }
 
-/* Balzac: nav ul li { font-size:16px; font-weight:bold; margin-left:20px } */
 .topbar__nav {
   display: flex;
-  gap: 20px;
+  gap: 26px;
   font-family: var(--font-sans);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 1px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .09em;
 }
-.topbar__nav a {
-  color: inherit;
-  text-decoration: none;            /* never underline — Balzac uses a glow */
-  transition: text-shadow .2s ease;
-}
-/* Balzac hover: tshd(0, 0, 3px, rgba(255,255,255,.6)) */
-.topbar__nav a:hover,
-.brand:hover {
-  color: inherit;
-  text-decoration: none;
-}
+.topbar__nav a { color: inherit; text-decoration: none; opacity: .82; }
+.topbar__nav a:hover { opacity: 1; text-decoration: underline; text-underline-offset: 4px; }
 
 .menu-btn {
   display: none;                    /* desktop: hidden, nav links are enough */
@@ -168,27 +154,8 @@ body.no-hero .topbar {
 .menu-btn:hover { background: rgba(128,128,128,.12); }
 .menu-btn:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
-/* ---------- glow ----------
-   Over the banner the bar is white text on a painting, so it carries a
-   soft permanent white glow for legibility (plus a dark halo underneath
-   for light patches of sky), brightening on hover the way Balzac does. */
 body.has-hero .brand,
-body.has-hero .topbar__nav a {
-  text-shadow:
-    0 0 4px  rgba(255,255,255,.55),
-    0 0 14px rgba(255,255,255,.35),
-    0 1px 3px rgba(0,0,0,.45);
-}
-body.has-hero .brand:hover,
-body.has-hero .topbar__nav a:hover {
-  text-shadow:
-    0 0 3px  rgba(255,255,255,.95),
-    0 0 10px rgba(255,255,255,.75),
-    0 0 22px rgba(255,255,255,.45);
-}
-/* on a bannerless page the text is dark, so glow would be invisible */
-body.no-hero .brand:hover,
-body.no-hero .topbar__nav a:hover { color: var(--link); }
+body.has-hero .topbar__nav a { text-shadow: 0 1px 14px rgba(0,0,0,.6); }
 
 /* ---------- floating contents button ----------
    The bar scrolls away, so below 1200px (where the TOC rail is hidden)
@@ -663,7 +630,9 @@ mjx-container { max-width: 100%; }
   .topbar__nav { display: none; }
   .menu-btn { display: flex; }
 
-  .brand { font-size: 17px; letter-spacing: 1.5px; }
+  .topbar__inner { width: calc(100% - 32px); }
+
+  .brand { font-size: 14px; letter-spacing: .07em; }
 
   .hero { height: 52vh; min-height: 260px; max-height: none; }
 

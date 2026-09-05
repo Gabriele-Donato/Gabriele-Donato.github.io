@@ -3,74 +3,276 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ page.title | default: site.title }}</title>
+
+  {%- comment -%}
+    Every page gets a banner image: the page's own `image:` front matter,
+    falling back to `header_image` in _config.yml. The top bar sits over it.
+  {%- endcomment -%}
+  {%- assign is_post = false -%}
+  {%- if page.layout == 'post' -%}{%- assign is_post = true -%}{%- endif -%}
+  {%- assign hero_src = page.image | default: site.header_image -%}
+  {%- assign show_hero = false -%}
+  {%- if hero_src -%}{%- assign show_hero = true -%}{%- endif -%}
+
+  <title>{% if page.title and page.url != '/' %}{{ page.title }} &middot; {{ site.title }}{% else %}{{ site.title }}{% endif %}</title>
+
+  {%- comment -%} Crimson Text + Source Sans 3 — the faces Balzac (Joe's theme) resolves to {%- endcomment -%}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Source+Sans+3:wght@400;600;700&display=swap">
+
   <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+  {%- feed_meta -%}
+  {%- comment -%} title=false: we set <title> ourselves just above, avoid a duplicate {%- endcomment -%}
+  {% seo title=false %}
+  {% include head-custom.html %}
+
+  {%- if is_post %}
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]'], ['$$', '$$']]
+      },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'] }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  {%- endif %}
 </head>
-<body>
 
-  <!-- Transparent floating hamburger menu button -->
-  <button id="mobile-nav-toggle" class="mobile-nav-toggle" aria-label="Menu">
-    <svg viewBox="0 0 24 24" width="26" height="26"><path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-  </button>
+<body class="{% if show_hero %}has-hero{% else %}no-hero{% endif %} {% if is_post %}is-post{% endif %}">
 
-  <div class="nav-overlay" id="nav-overlay"></div>
-  <div class="mobile-nav-drawer" id="mobile-nav-drawer">
-    <div class="drawer-title">MENU</div>
-    <ul>
-      <li><a href="{{ '/' | relative_url }}">HOME</a></li>
-      <li><a href="{{ '/about/' | relative_url }}">ABOUT</a></li>
-      <li><a href="{{ '/resources/' | relative_url }}">RESOURCES</a></li>
-    </ul>
-  </div>
+  <a class="skip-link" href="#main">Skip to content</a>
 
-  <header class="page-header" style="background-image: url('{{ page.image | relative_url }}');">
-    <div class="header-content">
-      <div class="site-title">
-        <h4>
-          <a href="{{ '/' | relative_url }}" style="color:white;text-decoration:none;">
-            {{ site.title }}
-          </a>
-        </h4>
-      </div>
-      <nav>
-        <ul>
-          <li><a href="{{ '/about/' | relative_url }}" style="text-decoration:none">ABOUT</a></li>
-          <li><a href="{{ '/resources/' | relative_url }}" style="text-decoration:none">RESOURCES</a></li>
-        </ul>
+  <!-- ===================== Top bar (one bar, every page) ===================== -->
+  <header class="topbar" id="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="{{ '/' | relative_url }}">{{ site.title }}</a>
+
+      <nav class="topbar__nav" aria-label="Main">
+        <a href="{{ '/about/' | relative_url }}">ABOUT</a>
+        <a href="{{ '/resources/' | relative_url }}">RESOURCES</a>
       </nav>
+
+      <button type="button" class="menu-btn" id="menu-btn"
+              aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </svg>
+      </button>
     </div>
   </header>
 
-  <main class="main-content">
+  <!-- ===================== Slide-in drawer ===================== -->
+  <div class="drawer-scrim" id="drawer-scrim" hidden></div>
+
+  <aside class="drawer" id="drawer" aria-hidden="true" aria-label="Menu">
+    <button type="button" class="drawer__close" id="drawer-close" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+      </svg>
+    </button>
+
+    {%- if is_post %}
+    <p class="drawer__label">CONTENTS</p>
+    <nav class="drawer__toc" id="toc-mobile" aria-label="Table of contents"></nav>
+    <hr class="drawer__rule">
+    {%- endif %}
+
+    <p class="drawer__label">MENU</p>
+    <nav class="drawer__site" aria-label="Site">
+      <a href="{{ '/' | relative_url }}">HOME</a>
+      <a href="{{ '/about/' | relative_url }}">ABOUT</a>
+      <a href="{{ '/resources/' | relative_url }}">RESOURCES</a>
+    </nav>
+  </aside>
+
+  <!-- ===================== Banner image ===================== -->
+  {%- if show_hero %}
+  <div class="hero{% if is_post %} hero--post{% endif %}"
+       style="background-image:url('{{ hero_src | relative_url }}');" role="presentation"></div>
+  {%- endif %}
+
+  <!-- ===================== Content ===================== -->
+  <main id="main">
     {{ content }}
   </main>
 
+
+  <!-- ===================== Floating contents button (posts, narrow screens) ===================== -->
+  {%- if is_post %}
+  <button type="button" class="toc-fab" id="toc-fab" aria-label="Open contents" aria-controls="drawer">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M3 6h2v2H3V6zm4 0h14v2H7V6zM3 11h2v2H3v-2zm4 0h14v2H7v-2zm-4 5h2v2H3v-2zm4 0h14v2H7v-2z"/>
+    </svg>
+  </button>
+  {%- endif %}
+
   <footer class="site-footer">
-    <p>Contact me at: <a href="mailto:{{ site.email }}">{{ site.email }}</a></p>
+    <div class="site-footer__inner">
+      <p>Contact me at <a href="mailto:{{ site.email }}">{{ site.email }}</a></p>
+      <p class="site-footer__meta">&copy; {{ site.time | date: "%Y" }} {{ site.title | capitalize }}. Built with Jekyll.</p>
+    </div>
   </footer>
 
+  <!-- ===================================================================
+       Scripts are INLINE on purpose.
+       As external files they were being served stale from the browser
+       cache (Jekyll sends no cache-busting header), which silently ran
+       the old pre-redesign post-toc.js and left CONTENTS empty.
+       Inline, they regenerate with the HTML and can never go stale.
+       =================================================================== -->
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const toggleBtn = document.getElementById("mobile-nav-toggle");
-      const drawer = document.getElementById("mobile-nav-drawer");
-      const overlay = document.getElementById("nav-overlay");
+  /* ---------------- drawer + floating contents button ---------------- */
+  (function () {
+    "use strict";
+    var btn    = document.getElementById("menu-btn");
+    var fab    = document.getElementById("toc-fab");
+    var drawer = document.getElementById("drawer");
+    var scrim  = document.getElementById("drawer-scrim");
+    var closeB = document.getElementById("drawer-close");
+    if (!drawer || !scrim) return;
 
-      if (toggleBtn && drawer && overlay) {
-        function closeDrawer() {
-          drawer.classList.remove("open");
-          overlay.classList.remove("open");
-          document.body.style.overflow = "";
-        }
+    var lastFocus = null;
 
-        toggleBtn.addEventListener("click", function() {
-          drawer.classList.toggle("open");
-          overlay.classList.toggle("open");
-          document.body.style.overflow = drawer.classList.contains("open") ? "hidden" : "";
-        });
+    function openDrawer(trigger) {
+      lastFocus = trigger || document.activeElement;
+      scrim.hidden = false;
+      void scrim.offsetWidth;
+      drawer.classList.add("is-open");
+      scrim.classList.add("is-open");
+      drawer.setAttribute("aria-hidden", "false");
+      if (btn) btn.setAttribute("aria-expanded", "true");
+      document.body.classList.add("drawer-open");
+      if (closeB) closeB.focus();
+    }
+    function closeDrawer() {
+      drawer.classList.remove("is-open");
+      scrim.classList.remove("is-open");
+      drawer.setAttribute("aria-hidden", "true");
+      if (btn) btn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("drawer-open");
+      window.setTimeout(function () { scrim.hidden = true; }, 300);
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+    function toggle(e) {
+      if (drawer.classList.contains("is-open")) closeDrawer();
+      else openDrawer(e && e.currentTarget);
+    }
 
-        overlay.addEventListener("click", closeDrawer);
-      }
+    if (btn) btn.addEventListener("click", toggle);
+    if (fab) fab.addEventListener("click", toggle);
+    scrim.addEventListener("click", closeDrawer);
+    if (closeB) closeB.addEventListener("click", closeDrawer);
+    drawer.addEventListener("click", function (e) {
+      if (e.target.closest && e.target.closest("a")) closeDrawer();
     });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && drawer.classList.contains("is-open")) closeDrawer();
+    });
+
+    if (fab) {
+      var hero = document.querySelector(".hero"), ticking = false;
+      var sync = function () {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(function () {
+          var past = hero ? hero.getBoundingClientRect().bottom <= 0
+                          : window.scrollY > 240;
+          fab.classList.toggle("is-visible", past);
+          ticking = false;
+        });
+      };
+      window.addEventListener("scroll", sync, { passive: true });
+      window.addEventListener("resize", sync);
+      window.addEventListener("orientationchange", sync);
+      window.addEventListener("load", sync);
+      sync();
+    }
+  })();
+
+  /* ---------------- table of contents ---------------- */
+  (function () {
+    "use strict";
+    var article = document.getElementById("post-content");
+    if (!article) return;                       // not a post page
+
+    var rail   = document.getElementById("toc-desktop");
+    var mobile = document.getElementById("toc-mobile");
+    if (!rail && !mobile) {
+      console.warn("[toc] #post-content present but no TOC container.");
+      return;
+    }
+
+    var headings   = Array.prototype.slice.call(article.querySelectorAll("h2, h3"));
+    var railSticky = document.querySelector(".toc-rail__sticky");
+
+    if (!headings.length) {
+      if (railSticky) railSticky.classList.add("is-empty");
+      console.warn("[toc] no <h2>/<h3> inside #post-content — TOC hidden.");
+      return;
+    }
+
+    var used = Object.create(null);
+    function slugify(t) {
+      var s = t.toLowerCase()
+               .replace(/[\u2018\u2019\u201c\u201d]/g, "")
+               .replace(/[^a-z0-9\s-]/g, "")
+               .trim().replace(/\s+/g, "-");
+      return s || "section";
+    }
+    headings.forEach(function (h) {
+      if (!h.id) {
+        var base = slugify(h.textContent), id = base, n = 2;
+        while (used[id] || document.getElementById(id)) { id = base + "-" + n; n++; }
+        h.id = id;
+      }
+      used[h.id] = true;
+    });
+
+    var ol = document.createElement("ol");
+    headings.forEach(function (h) {
+      var li = document.createElement("li");
+      li.className = h.tagName === "H3" ? "toc-h3" : "toc-h2";
+      var a = document.createElement("a");
+      a.href = "#" + h.id;
+      a.textContent = h.textContent.trim();
+      a.setAttribute("data-target", h.id);
+      li.appendChild(a);
+      ol.appendChild(li);
+    });
+    if (rail)   rail.appendChild(ol.cloneNode(true));
+    if (mobile) mobile.appendChild(ol.cloneNode(true));
+
+    var links = Array.prototype.slice.call(
+      document.querySelectorAll("#toc-desktop a[data-target], #toc-mobile a[data-target]"));
+
+    function setActive(id) {
+      links.forEach(function (a) {
+        a.classList.toggle("is-active", a.getAttribute("data-target") === id);
+      });
+    }
+
+    if ("IntersectionObserver" in window) {
+      var visible = Object.create(null);
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) visible[en.target.id] = true;
+          else delete visible[en.target.id];
+        });
+        for (var i = 0; i < headings.length; i++) {
+          if (visible[headings[i].id]) { setActive(headings[i].id); return; }
+        }
+        var last = null;
+        for (var j = 0; j < headings.length; j++) {
+          if (headings[j].getBoundingClientRect().top < 120) last = headings[j];
+        }
+        if (last) setActive(last.id);
+      }, { rootMargin: "-72px 0px -70% 0px", threshold: 0 });
+      headings.forEach(function (h) { obs.observe(h); });
+    }
+  })();
   </script>
 </body>
 </html>

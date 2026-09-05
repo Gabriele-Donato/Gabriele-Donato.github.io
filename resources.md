@@ -1,5 +1,5 @@
 ---
-layout: default
+page: default
 title: Useful Resources
 permalink: /resources/
 image: /assets/images/rambosson.jpg
