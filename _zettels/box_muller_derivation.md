@@ -45,7 +45,33 @@ Since we have $$r$$ and $$\theta$$ PDFs, we can compute their CDF which takes as
 
 ---
 
+$$CDF(r) = \int_{0}^{R} e^{\frac{-r^{2}}{2}} dr $$
 
+$$ = \int_{0}^{R} e^{u} -du$$ &emsp;&emsp; with $$u = \frac{r^{2}}{2}$$ &emsp; and &emsp; $$du = -rdr$$
+
+$$ = [-e^{u}]^R_0 = 1 - e^{\frac{R^{2}}{2}}$$
+
+Also:
+
+$$CDF(\theta) = \int_{0}^{\theta} \frac{1}{2 \pi} d{\theta}$$
+
+$$ = [\frac{1}{2 \pi}]^{\theta}_{0} = \frac{1}{2 \pi}{\theta}$$
+
+By the Universality of the Uniform Distribution (Probability Integral Transform) $$CDF(r)$$ and $$CDF(\theta)$$ are $$\sim{U(0, 1)}$$. If we indicate two uniform ramdom numbers using $$a$$ and $$b$$ we have:
+
+$$CDF(r) = a$$
+
+$$CDF(\theta) = b$$
+
+$$r = \sqrt{-2 \log{a}}$$ 
+
+$$\theta = 2 \pi b$$ 
+
+And finally:
+
+$$x = \sqrt{-2 \log{a}} \ cos (2 \pi b)$$ 
+
+$$y = \sqrt{-2 \log{a}} \ sin (2 \pi b)$$
 
 
 **References**
