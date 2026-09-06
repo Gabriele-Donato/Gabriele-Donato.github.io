@@ -2,7 +2,6 @@
    ZETTELKASTEN
    --------------------------------------------------------------------------
    Loaded only on /zettelkasten/ and on single note pages.
-
    It inherits every colour, face and metric from the site's own tokens in
    assets/css/style.scss (--ink, --rule, --bg, --link, --font-serif …) and adds
    only what an index card needs. Nothing here overrides a global rule, so this
@@ -13,6 +12,7 @@
    carries a ?v= cache-buster, so the browser can never serve you a stale copy
    the way it did with post-toc.js.
    ========================================================================== */
+
 
 /* ==========================================================================
    Local tokens
@@ -35,6 +35,7 @@
 .zk [hidden],
 .zk-modal[hidden] { display: none !important; }
 
+
 /* ---- lead-in: page title + any prose from zettelkasten.md ---------------- */
 .zk-intro {
   width: min(680px, calc(100% - 40px));
@@ -51,8 +52,10 @@
 }
 .zk-intro__text p { margin: 0 0 14px; }
 .zk-intro__text > *:last-child { margin-bottom: 0; }
+
 /* the grid's own top padding would double up under the lead-in */
 .zk-intro + .zk { padding-top: 48px; }
+
 
 .zk {
   /* ---- page shell -------------------------------------------------------
@@ -75,6 +78,7 @@
   clip: rect(0 0 0 0); clip-path: inset(50%);
   overflow: hidden; white-space: nowrap;
 }
+
 
 /* ==========================================================================
    A. Control panel
@@ -107,6 +111,7 @@
   font-size: 12.5px;
   color: var(--ink-muted);
 }
+
 
 /* ---------- search ---------- */
 .zk-search { position: relative; }
@@ -163,6 +168,7 @@
 .zk-search__clear:hover { color: var(--ink); background: rgba(128, 128, 128, .12); }
 .zk-search__clear:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 
+
 /* ---------- tag pills ---------- */
 .zk-tags {
   display: flex;
@@ -191,7 +197,6 @@
 }
 .zk-tag:hover { color: var(--ink); border-color: var(--ink-faint); }
 .zk-tag:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
-
 .zk-tag.is-active {
   color: #fff;
   background: var(--link);
@@ -204,7 +209,6 @@
 .zk-tag.is-empty { opacity: .38; }
 
 .zk-tag__hash { color: var(--ink-faint); }
-
 .zk-tag__count {
   margin-left: 4px;
   font-family: var(--font-mono);
@@ -212,7 +216,6 @@
   font-weight: 400;
   color: var(--ink-faint);
 }
-
 .zk-tag--all { font-weight: 700; letter-spacing: .02em; }
 
 .zk-reset {
@@ -228,6 +231,7 @@
   cursor: pointer;
 }
 .zk-reset:hover { color: var(--link-hover); }
+
 
 /* ==========================================================================
    B. Card grid
@@ -325,7 +329,6 @@
   font-size: 16.5px;
   line-height: 1.45;
   color: var(--ink);
-
   /* three lines, then an ellipsis */
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -387,7 +390,6 @@
   padding: 0;
   min-width: 0;
 }
-
 .zettel-card__tag {
   padding: 2px 7px;
   font-family: var(--font-sans);
@@ -437,15 +439,21 @@
   cursor: pointer;
 }
 
+
 /* ==========================================================================
    C. Modal preview
+   --------------------------------------------------------------------------
+   The SCROLLER IS .zk-modal, not the panel. The panel is deliberately left
+   free to be as tall as its content — a note with a long derivation should
+   scroll the whole sheet of paper, not a little window cut into it.
+   Corollary: never give the panel a definite height. See the 768px block.
    ========================================================================== */
 .zk-modal {
   position: fixed;
   inset: 0;
   z-index: 6500;               /* above the drawer (6000) in style.scss */
   display: flex;
-  align-items: flex-start;
+  align-items: flex-start;     /* NOT stretch — see the note above       */
   justify-content: center;
   padding: 6vh 20px 20px;
   overflow-y: auto;
@@ -464,6 +472,7 @@
 .zk-modal__panel {
   position: relative;
   width: min(680px, 100%);      /* the site's --measure reading width */
+  height: auto;                 /* grows with the note; never stretched */
   margin-bottom: 6vh;
   padding: 40px 44px 32px;
   background: var(--zk-card);
@@ -501,7 +510,6 @@
   margin-bottom: 26px;
   border-bottom: 1px solid var(--zk-rule-red);
 }
-
 .zk-modal__id {
   display: inline-block;
   margin-bottom: 10px;
@@ -525,7 +533,6 @@
   color: var(--ink);
   text-wrap: balance;
 }
-
 .zk-modal__date {
   margin: 0;
   font-family: var(--font-serif);
@@ -573,6 +580,16 @@
 .zk-modal__body h3 { font-size: 21px; }
 .zk-modal__body > *:last-child { margin-bottom: 0; }
 
+/* A display equation or a wide table must scroll inside its own box rather
+   than push the panel wider than the phone. */
+.zk-modal__body mjx-container[display="true"],
+.zk-modal__body .MathJax_Display,
+.zk-modal__body pre,
+.zk-modal__body table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .zk-modal__loading {
   font-family: var(--font-sans);
   font-size: 14px;
@@ -584,7 +601,6 @@
 
 .zk-links-group { margin-top: 30px; }
 .zk-links-group + .zk-links-group { margin-top: 22px; }
-
 .zk-links-group__label {
   margin: 0 0 10px;
   font-family: var(--font-sans);
@@ -593,10 +609,8 @@
   letter-spacing: .16em;
   color: var(--ink-faint);
 }
-
 .zk-links-group ul { list-style: none; margin: 0; padding: 0; }
 .zk-links-group li { margin: 0; }
-
 .zk-links-group a,
 .zk-links-group .zk-link-missing {
   display: block;
@@ -609,14 +623,12 @@
   border-left: 2px solid var(--rule);
 }
 .zk-links-group a:hover { color: var(--link); border-left-color: var(--link); }
-
 .zk-links-group .zk-link-num {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--ink-faint);
   margin-right: 7px;
 }
-
 /* a link whose target has not been written yet */
 .zk-link-missing { color: var(--ink-faint); font-style: italic; }
 
@@ -637,6 +649,7 @@
 /* page behind the modal must not scroll */
 body.zk-locked { overflow: hidden; }
 
+
 /* ==========================================================================
    D. Single note page (_layouts/zettel.html)
    ========================================================================== */
@@ -651,7 +664,6 @@ body.zk-locked { overflow: hidden; }
   border: 1px solid var(--zk-card-edge);
   border-radius: 2px;
 }
-
 .zettel-page__links {
   margin-top: 56px;
   padding-top: 28px;
@@ -667,6 +679,7 @@ body.zk-locked { overflow: hidden; }
   text-decoration: none;
 }
 
+
 /* ==========================================================================
    E. Breakpoints
    ========================================================================== */
@@ -679,7 +692,6 @@ body.zk-locked { overflow: hidden; }
     width: min(760px, calc(100% - 40px));
     padding-top: 56px;
   }
-
   .zk-panel__sticky {
     position: sticky;
     top: 0;
@@ -689,7 +701,6 @@ body.zk-locked { overflow: hidden; }
     border-bottom: 1px solid var(--rule);
     z-index: 20;
   }
-
   .zk-panel__label { margin-bottom: 6px; }
   .zk-panel__count { margin-bottom: 12px; }
   .zk-panel__label--tags { margin-top: 18px; }
@@ -709,22 +720,33 @@ body.zk-locked { overflow: hidden; }
 
 @media (max-width: 768px) {
   .zk { width: calc(100% - 32px); padding-top: 40px; }
-
   .zk-intro { width: calc(100% - 32px); padding-top: 40px; }
   .zk-intro .post__title { font-size: 32px; }
   .zk-intro__text { font-size: 17.5px; }
   .zk-intro + .zk { padding-top: 32px; }
 
   .zk-grid { grid-template-columns: 1fr; gap: 16px; }
-
   .zettel-card { min-height: 0; padding: 16px; }
   .zettel-card__title { font-size: 19.5px; }
   .zettel-card__excerpt { font-size: 16px; }
 
-  .zk-modal { padding: 0; align-items: stretch; }
+  /* ---- full-bleed modal ------------------------------------------------
+     `align-items: stretch` here would hand the panel a DEFINITE height —
+     the flex line's cross size, i.e. the viewport — and a definite height
+     is not grown by overflowing content. The cream background would stop
+     at 100vh while the note kept running down the page, printing the text
+     over the grid behind it. So: flex-start (the panel sizes to its own
+     content) plus a min-height floor so a short note still fills the
+     screen. dvh where supported, because the mobile URL bar makes vh lie.
+     ---------------------------------------------------------------------- */
+  .zk-modal {
+    padding: 0;
+    align-items: flex-start;
+  }
   .zk-modal__panel {
     width: 100%;
-    min-height: 100%;
+    height: auto;
+    min-height: 100vh;
     margin: 0;
     padding: 34px 22px 28px;
     border: 0;
@@ -733,6 +755,13 @@ body.zk-locked { overflow: hidden; }
   .zk-modal__title { font-size: 27px; }
   .zk-modal__body { font-size: 17.5px; }
 }
+
+@supports (min-height: 100dvh) {
+  @media (max-width: 768px) {
+    .zk-modal__panel { min-height: 100dvh; }
+  }
+}
+
 
 /* ==========================================================================
    F. Motion / print
