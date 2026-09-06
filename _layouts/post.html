@@ -22,6 +22,44 @@ layout: default
       {{ content }}
     </div>
 
+    {%- comment -%}
+      ============================================================
+      OPTIONAL: zettels -> post.
+      Renders only when a post's front matter lists `built_from:`.
+      Without that key this block produces nothing at all, and the
+      post is exactly the post it was before the Zettelkasten existed.
+      ============================================================
+    {%- endcomment -%}
+    {%- if page.built_from and page.built_from != empty %}
+    <div class="zk-links-group post__built-from">
+      <p class="zk-links-group__label">BUILT FROM THESE NOTES</p>
+      <ul>
+        {%- for token in page.built_from -%}
+          {%- assign token_norm = token | downcase -%}
+          {%- assign hit = false -%}
+          {%- for z in site.zettels -%}
+            {%- assign z_slug = z.slug | downcase -%}
+            {%- assign z_id = z.note_id | downcase -%}
+            {%- if z_slug == token_norm or z_id == token_norm -%}
+              {%- assign hit = z -%}
+              {%- break -%}
+            {%- endif -%}
+          {%- endfor -%}
+        <li>
+          {%- if hit -%}
+            <a href="{{ hit.url | relative_url }}">
+              {%- if hit.note_id %}<span class="zk-link-num">{{ hit.note_id }}</span>{% endif -%}
+              {{ hit.title }}
+            </a>
+          {%- else -%}
+            <span class="zk-link-missing">{{ token }} &mdash; not written yet</span>
+          {%- endif -%}
+        </li>
+        {%- endfor -%}
+      </ul>
+    </div>
+    {%- endif %}
+
     <nav class="post__nav" aria-label="Post navigation">
       {%- if page.previous.url %}
       <a class="post__nav-prev" href="{{ page.previous.url | relative_url }}">

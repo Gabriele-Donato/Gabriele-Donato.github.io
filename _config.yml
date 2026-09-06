@@ -18,17 +18,56 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: GABRIELE DONATO
+title: Gabriele Donato
 email: gabriele.donato52@gmail.com
-description: >- # this means to ignore newlines until "baseurl:"
-  I am a student of international economics and affairs passionate about
-  quantitative, and especially Bayesian methods. In this blog I would like to 
-  share my journey in the wondrous world of data analysis and statistics.
-  I like reading, walking and getting to know new people and their stories.
+about_me: >- # this means to ignore newlines until next variable
+  I am a Data Engineer at Procter&Gamble, based in Rome. My education is in 
+  International Affairs and Economics. I have also a Bachelor's degree in Oriental Languages.
+  I love reading, walking and getting to know new people and their stories. 
+  These habits got me the opportunity of discovering my passion for data and especially Bayesian statistics.
+about_website: >-
+  This website is for storing and presenting my private projects and research.
+  I use it also as a Zettelkasten, i.e. a  note taking system where notes represents
+  interconnected atoms of knowledge.
+
+
+  Many tools exist for digital Zettelkasten, and the method
+  itself was born using phisical paper notes, so why a custom Zettelkasten on a website? 
+  Because putting it on my website motivates me to keep it updated; because it is portable; because I can leverage 
+  GitHub as a versioning system for my notes; because the flow of arguments-from-notes naturally takes the form of zettel-to-long-post; because 
+  open notes and derivations that are useful to me can be useful to others; because in the age of AI, knowledge management, understanding and attention are skills to invest upon.
+
+
+  Also, I am not deriving posteriors all the time and would like a system able to welcome a variety of topics (I will keep updating my physical diaries, but as the number
+  grows it becomes difficult to find what is needed).
+  
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://gabriele-donato.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: jekyllrb
 github_username:  jekyll
+
+# ---------------------------------------------------------------------------
+# Zettelkasten
+# ---------------------------------------------------------------------------
+# Notes live in _zettels/ as their own collection, so they never appear in the
+# chronological blog feed on the home page, in the RSS feed, or in `site.posts`.
+# `output: true` gives each note its own page at /zettel/<filename>/ — which is
+# what the modal on /zettelkasten/ fetches for the preview body.
+collections:
+  zettels:
+    output: true
+    permalink: /zettel/:name/
+
+# Defaults for notes only, so a note needs neither `layout:` nor `image:` in its
+# front matter. Nothing outside _zettels/ is affected — posts and pages keep
+# setting their own `image:` exactly as they do today.
+defaults:
+  - scope:
+      path: ""
+      type: zettels
+    values:
+      layout: zettel
+      image: /assets/images/rambosson.jpg
 
 # Build settings
 theme: jekyll-theme-cayman

@@ -14,6 +14,39 @@
   {%- assign show_hero = false -%}
   {%- if hero_src -%}{%- assign show_hero = true -%}{%- endif -%}
 
+  {%- comment -%}
+    Two separate questions, deliberately not conflated:
+
+    is_zettel_page — is this the Zettelkasten index or a note? It decides the
+                     nav highlight, so a POST must never set it, even one that
+                     lists `built_from:` notes.
+    needs_zk_css   — does this page use any .zk-* class? That is the two pages
+                     above, plus a post whose "built from these notes" block
+                     reuses .zk-links-group.
+  {%- endcomment -%}
+  {%- assign is_zettel_index = false -%}
+  {%- assign is_zettel_page = false -%}
+  {%- if page.layout == 'zettelkasten' -%}{%- assign is_zettel_index = true -%}{%- endif -%}
+  {%- if page.layout == 'zettel' or is_zettel_index -%}{%- assign is_zettel_page = true -%}{%- endif -%}
+
+  {%- assign needs_zk_css = is_zettel_page -%}
+  {%- if page.built_from and page.built_from != empty -%}{%- assign needs_zk_css = true -%}{%- endif -%}
+
+  {%- comment -%}
+    MathJax used to load on posts only. It now also loads on notes, and on any
+    page that opts in with `mathjax: true` in its front matter.
+  {%- endcomment -%}
+  {%- assign use_mathjax = false -%}
+  {%- if is_post or is_zettel_page or page.mathjax -%}{%- assign use_mathjax = true -%}{%- endif -%}
+  {%- if page.mathjax == false -%}{%- assign use_mathjax = false -%}{%- endif -%}
+
+  {%- comment -%}
+    Cache-buster for the assets that are NOT inlined. GitHub Pages sends no
+    revalidation header, which is how a stale post-toc.js survived for weeks;
+    site.time changes on every build, so a rebuilt file is always re-fetched.
+  {%- endcomment -%}
+  {%- assign build_id = site.time | date: '%s' -%}
+
   <title>{% if page.title and page.url != '/' %}{{ page.title }} &middot; {{ site.title }}{% else %}{{ site.title }}{% endif %}</title>
 
   {%- comment -%} Crimson Text + Source Sans 3 — the faces Balzac (Joe's theme) resolves to {%- endcomment -%}
@@ -21,13 +54,20 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Source+Sans+3:wght@400;600;700&display=swap">
 
-  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}?v={{ build_id }}">
+  {%- if needs_zk_css %}
+  <link rel="stylesheet" href="{{ '/assets/css/zettelkasten.css' | relative_url }}?v={{ build_id }}">
+  {%- endif %}
   {%- feed_meta -%}
   {%- comment -%} title=false: we set <title> ourselves just above, avoid a duplicate {%- endcomment -%}
   {% seo title=false %}
   {% include head-custom.html %}
 
-  {%- if is_post %}
+  {%- if is_zettel_index %}
+  <script defer src="{{ '/assets/js/zettelkasten.js' | relative_url }}?v={{ build_id }}"></script>
+  {%- endif %}
+
+  {%- if use_mathjax %}
   <script>
     window.MathJax = {
       tex: {
@@ -51,8 +91,10 @@
       <a class="brand" href="{{ '/' | relative_url }}">{{ site.title }}</a>
 
       <nav class="topbar__nav" aria-label="Main">
-        <a href="{{ '/about/' | relative_url }}">ABOUT</a>
-        <a href="{{ '/resources/' | relative_url }}">RESOURCES</a>
+        <a href="{{ '/about/' | relative_url }}"
+           {%- if page.url == '/about/' %} class="is-active" aria-current="page"{% endif %}>ABOUT</a>
+        <a href="{{ '/zettelkasten/' | relative_url }}"
+           {%- if is_zettel_page %} class="is-active" aria-current="page"{% endif %}>ZETTEL</a>
       </nav>
 
       <button type="button" class="menu-btn" id="menu-btn"
@@ -82,9 +124,12 @@
 
     <p class="drawer__label">MENU</p>
     <nav class="drawer__site" aria-label="Site">
-      <a href="{{ '/' | relative_url }}">HOME</a>
-      <a href="{{ '/about/' | relative_url }}">ABOUT</a>
-      <a href="{{ '/resources/' | relative_url }}">RESOURCES</a>
+      <a href="{{ '/' | relative_url }}"
+         {%- if page.url == '/' %} class="is-active" aria-current="page"{% endif %}>HOME</a>
+      <a href="{{ '/about/' | relative_url }}"
+         {%- if page.url == '/about/' %} class="is-active" aria-current="page"{% endif %}>ABOUT</a>
+      <a href="{{ '/zettelkasten/' | relative_url }}"
+         {%- if is_zettel_page %} class="is-active" aria-current="page"{% endif %}>ZETTEL</a>
     </nav>
   </aside>
 

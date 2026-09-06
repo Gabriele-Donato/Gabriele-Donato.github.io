@@ -706,3 +706,18 @@ mjx-container { max-width: 100%; }
   .post-wrap, .page-wrap, .home { width: 100%; padding: 0; grid-template-columns: 1fr; }
   a { text-decoration: none; color: #000; }
 }
+
+/* ==========================================================================
+   Active navigation state
+   --------------------------------------------------------------------------
+   Added with the Zettelkasten: the top bar and the drawer now mark the page
+   you are on. Over the banner the link is white on a painting, so the marker
+   is a hairline rule in the current colour rather than a colour change.
+   ========================================================================== */
+.topbar__nav a.is-active {
+  padding-bottom: 3px;
+  border-bottom: 1px solid currentColor;
+}
+body.no-hero .topbar__nav a.is-active { color: var(--link); }
+
+.drawer__site a.is-active { color: var(--link); font-weight: 700; }

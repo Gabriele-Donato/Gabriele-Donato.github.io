@@ -1,0 +1,202 @@
+diff --git a/_config.yml b/_config.yml
+index 13d4d9e..b1539e9 100644
+--- a/_config.yml
++++ b/_config.yml
+@@ -30,6 +30,29 @@ url: "https://gabriele-donato.github.io" # the base hostname & protocol for your
+ twitter_username: jekyllrb
+ github_username:  jekyll
+ 
++# ---------------------------------------------------------------------------
++# Zettelkasten
++# ---------------------------------------------------------------------------
++# Notes live in _zettels/ as their own collection, so they never appear in the
++# chronological blog feed on the home page, in the RSS feed, or in `site.posts`.
++# `output: true` gives each note its own page at /zettel/<filename>/ — which is
++# what the modal on /zettelkasten/ fetches for the preview body.
++collections:
++  zettels:
++    output: true
++    permalink: /zettel/:name/
++
++# Defaults for notes only, so a note needs neither `layout:` nor `image:` in its
++# front matter. Nothing outside _zettels/ is affected — posts and pages keep
++# setting their own `image:` exactly as they do today.
++defaults:
++  - scope:
++      path: ""
++      type: zettels
++    values:
++      layout: zettel
++      image: /assets/images/rambosson.jpg
++
+ # Build settings
+ theme: jekyll-theme-cayman
+ plugins:
+diff --git a/_layouts/default.html b/_layouts/default.html
+index b62cfa8..2559d84 100644
+--- a/_layouts/default.html
++++ b/_layouts/default.html
+@@ -14,6 +14,39 @@
+   {%- assign show_hero = false -%}
+   {%- if hero_src -%}{%- assign show_hero = true -%}{%- endif -%}
+ 
++  {%- comment -%}
++    Two separate questions, deliberately not conflated:
++
++    is_zettel_page — is this the Zettelkasten index or a note? It decides the
++                     nav highlight, so a POST must never set it, even one that
++                     lists `built_from:` notes.
++    needs_zk_css   — does this page use any .zk-* class? That is the two pages
++                     above, plus a post whose "built from these notes" block
++                     reuses .zk-links-group.
++  {%- endcomment -%}
++  {%- assign is_zettel_index = false -%}
++  {%- assign is_zettel_page = false -%}
++  {%- if page.layout == 'zettelkasten' -%}{%- assign is_zettel_index = true -%}{%- endif -%}
++  {%- if page.layout == 'zettel' or is_zettel_index -%}{%- assign is_zettel_page = true -%}{%- endif -%}
++
++  {%- assign needs_zk_css = is_zettel_page -%}
++  {%- if page.built_from and page.built_from != empty -%}{%- assign needs_zk_css = true -%}{%- endif -%}
++
++  {%- comment -%}
++    MathJax used to load on posts only. It now also loads on notes, and on any
++    page that opts in with `mathjax: true` in its front matter.
++  {%- endcomment -%}
++  {%- assign use_mathjax = false -%}
++  {%- if is_post or is_zettel_page or page.mathjax -%}{%- assign use_mathjax = true -%}{%- endif -%}
++  {%- if page.mathjax == false -%}{%- assign use_mathjax = false -%}{%- endif -%}
++
++  {%- comment -%}
++    Cache-buster for the assets that are NOT inlined. GitHub Pages sends no
++    revalidation header, which is how a stale post-toc.js survived for weeks;
++    site.time changes on every build, so a rebuilt file is always re-fetched.
++  {%- endcomment -%}
++  {%- assign build_id = site.time | date: '%s' -%}
++
+   <title>{% if page.title and page.url != '/' %}{{ page.title }} &middot; {{ site.title }}{% else %}{{ site.title }}{% endif %}</title>
+ 
+   {%- comment -%} Crimson Text + Source Sans 3 — the faces Balzac (Joe's theme) resolves to {%- endcomment -%}
+@@ -21,13 +54,20 @@
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Source+Sans+3:wght@400;600;700&display=swap">
+ 
+-  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
++  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}?v={{ build_id }}">
++  {%- if needs_zk_css %}
++  <link rel="stylesheet" href="{{ '/assets/css/zettelkasten.css' | relative_url }}?v={{ build_id }}">
++  {%- endif %}
+   {%- feed_meta -%}
+   {%- comment -%} title=false: we set <title> ourselves just above, avoid a duplicate {%- endcomment -%}
+   {% seo title=false %}
+   {% include head-custom.html %}
+ 
+-  {%- if is_post %}
++  {%- if is_zettel_index %}
++  <script defer src="{{ '/assets/js/zettelkasten.js' | relative_url }}?v={{ build_id }}"></script>
++  {%- endif %}
++
++  {%- if use_mathjax %}
+   <script>
+     window.MathJax = {
+       tex: {
+@@ -51,8 +91,10 @@
+       <a class="brand" href="{{ '/' | relative_url }}">{{ site.title }}</a>
+ 
+       <nav class="topbar__nav" aria-label="Main">
+-        <a href="{{ '/about/' | relative_url }}">ABOUT</a>
+-        <a href="{{ '/resources/' | relative_url }}">RESOURCES</a>
++        <a href="{{ '/about/' | relative_url }}"
++           {%- if page.url == '/about/' %} class="is-active" aria-current="page"{% endif %}>ABOUT</a>
++        <a href="{{ '/zettelkasten/' | relative_url }}"
++           {%- if is_zettel_page %} class="is-active" aria-current="page"{% endif %}>ZETTELKASTEN</a>
+       </nav>
+ 
+       <button type="button" class="menu-btn" id="menu-btn"
+@@ -82,9 +124,12 @@
+ 
+     <p class="drawer__label">MENU</p>
+     <nav class="drawer__site" aria-label="Site">
+-      <a href="{{ '/' | relative_url }}">HOME</a>
+-      <a href="{{ '/about/' | relative_url }}">ABOUT</a>
+-      <a href="{{ '/resources/' | relative_url }}">RESOURCES</a>
++      <a href="{{ '/' | relative_url }}"
++         {%- if page.url == '/' %} class="is-active" aria-current="page"{% endif %}>HOME</a>
++      <a href="{{ '/about/' | relative_url }}"
++         {%- if page.url == '/about/' %} class="is-active" aria-current="page"{% endif %}>ABOUT</a>
++      <a href="{{ '/zettelkasten/' | relative_url }}"
++         {%- if is_zettel_page %} class="is-active" aria-current="page"{% endif %}>ZETTELKASTEN</a>
+     </nav>
+   </aside>
+ 
+diff --git a/_layouts/post.html b/_layouts/post.html
+index e6ab185..f3564db 100644
+--- a/_layouts/post.html
++++ b/_layouts/post.html
+@@ -22,6 +22,44 @@ layout: default
+       {{ content }}
+     </div>
+ 
++    {%- comment -%}
++      ============================================================
++      OPTIONAL: zettels -> post.
++      Renders only when a post's front matter lists `built_from:`.
++      Without that key this block produces nothing at all, and the
++      post is exactly the post it was before the Zettelkasten existed.
++      ============================================================
++    {%- endcomment -%}
++    {%- if page.built_from and page.built_from != empty %}
++    <div class="zk-links-group post__built-from">
++      <p class="zk-links-group__label">BUILT FROM THESE NOTES</p>
++      <ul>
++        {%- for token in page.built_from -%}
++          {%- assign token_norm = token | downcase -%}
++          {%- assign hit = false -%}
++          {%- for z in site.zettels -%}
++            {%- assign z_slug = z.slug | downcase -%}
++            {%- assign z_id = z.note_id | downcase -%}
++            {%- if z_slug == token_norm or z_id == token_norm -%}
++              {%- assign hit = z -%}
++              {%- break -%}
++            {%- endif -%}
++          {%- endfor -%}
++        <li>
++          {%- if hit -%}
++            <a href="{{ hit.url | relative_url }}">
++              {%- if hit.note_id %}<span class="zk-link-num">{{ hit.note_id }}</span>{% endif -%}
++              {{ hit.title }}
++            </a>
++          {%- else -%}
++            <span class="zk-link-missing">{{ token }} &mdash; not written yet</span>
++          {%- endif -%}
++        </li>
++        {%- endfor -%}
++      </ul>
++    </div>
++    {%- endif %}
++
+     <nav class="post__nav" aria-label="Post navigation">
+       {%- if page.previous.url %}
+       <a class="post__nav-prev" href="{{ page.previous.url | relative_url }}">
+diff --git a/assets/css/style.scss b/assets/css/style.scss
+index 94fa25c..40c737f 100644
+--- a/assets/css/style.scss
++++ b/assets/css/style.scss
+@@ -706,3 +706,18 @@ mjx-container { max-width: 100%; }
+   .post-wrap, .page-wrap, .home { width: 100%; padding: 0; grid-template-columns: 1fr; }
+   a { text-decoration: none; color: #000; }
+ }
++
++/* ==========================================================================
++   Active navigation state
++   --------------------------------------------------------------------------
++   Added with the Zettelkasten: the top bar and the drawer now mark the page
++   you are on. Over the banner the link is white on a painting, so the marker
++   is a hairline rule in the current colour rather than a colour change.
++   ========================================================================== */
++.topbar__nav a.is-active {
++  padding-bottom: 3px;
++  border-bottom: 1px solid currentColor;
++}
++body.no-hero .topbar__nav a.is-active { color: var(--link); }
++
++.drawer__site a.is-active { color: var(--link); font-weight: 700; }

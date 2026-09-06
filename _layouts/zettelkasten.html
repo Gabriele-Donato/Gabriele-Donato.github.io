@@ -1,0 +1,311 @@
+---
+layout: default
+---
+{%- comment -%}
+================================================================================
+  ZETTELKASTEN — index layout
+  ------------------------------------------------------------------------------
+  A single page that renders every note in the `zettels` collection as an
+  index card, with a sticky control panel (live search + tag index) beside it.
+
+  All heavy lifting that CAN happen at build time DOES happen at build time:
+    * the tag index and its per-tag counts,
+    * backlink resolution (who links to this note),
+    * the search haystack, injected as data-* attributes.
+  The browser only ever toggles classes — there is no client-side indexing pass
+  and no external library.
+
+  NOTE ON `id`
+  ------------
+  Jekyll's DocumentDrop delegates `id` to Document#id, which returns the
+  document's unique identifier (e.g. "/zettel/atomic-habit-formation").
+  A front-matter key called `id:` is therefore UNREACHABLE from Liquid — it is
+  shadowed by the drop method. The Zettel number lives in `note_id:` instead.
+
+  COMPATIBILITY
+  -------------
+  Uses only filters available in Jekyll 3.9 (what github.io builds with) and
+  Jekyll 4.4 (what your Gemfile pins locally): concat, uniq, sort, where_exp,
+  jsonify, normalize_whitespace, strip_html.
+================================================================================
+{%- endcomment -%}
+
+{%- comment -%} ---------- 1. The note set, newest first ---------- {%- endcomment -%}
+{%- assign notes = site.zettels | sort: "date" | reverse -%}
+
+{%- comment -%}
+  ---------- 2. Tag index -------------------------------------------------
+  Liquid has no hash type, so the tags are flattened into a delimited string
+  and split back into an array. `uniq` gives the index, and `where_exp` over
+  the flat array gives each tag its frequency.
+  Everything is downcased on the way in, so "Psychology" and "psychology"
+  can never become two separate pills.
+{%- endcomment -%}
+{%- assign tag_blob = "" -%}
+{%- for note in notes -%}
+  {%- if note.tags -%}
+    {%- for t in note.tags -%}
+      {%- assign t_norm = t | downcase | strip -%}
+      {%- if t_norm != "" -%}
+        {%- assign tag_blob = tag_blob | append: t_norm | append: "|" -%}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- assign tag_blob = tag_blob | split: "|" -%}
+{%- assign all_tags = tag_blob | sort | uniq -%}
+
+{%- comment -%}
+  Optional lead-in: whatever prose sits in the body of zettelkasten.md is
+  rendered here, in the site's own centred post header style.
+{%- endcomment -%}
+{%- if page.title or content != blank %}
+<header class="zk-intro">
+  {%- if page.title %}<h1 class="post__title">{{ page.title }}</h1>{% endif %}
+  {%- if content != blank %}<div class="zk-intro__text">{{ content }}</div>{% endif %}
+</header>
+{%- endif %}
+
+<div class="zk" id="zk">
+
+  {%- comment -%} ===================== A. Sticky control panel ===================== {%- endcomment -%}
+  <aside class="zk-panel" aria-label="Note filters">
+    <div class="zk-panel__sticky">
+
+      <p class="zk-panel__label">THE SLIP-BOX</p>
+      <p class="zk-panel__count">
+        <span id="zk-visible-count">{{ notes | size }}</span> of {{ notes | size }} notes
+      </p>
+
+      {%- comment -%} ---------- Search ---------- {%- endcomment -%}
+      <div class="zk-search">
+        <label class="zk-visually-hidden" for="zk-search-input">Search notes</label>
+        <svg class="zk-search__icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+        </svg>
+        <input type="search" id="zk-search-input" class="zk-search__input"
+               placeholder="Search titles &amp; text&hellip;"
+               autocomplete="off" spellcheck="false"
+               {%- comment -%} suppress the browser's own clear button; we draw our own {%- endcomment -%}
+               data-zk-search>
+        <button type="button" class="zk-search__clear" id="zk-search-clear"
+                aria-label="Clear search" hidden>
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+          </svg>
+        </button>
+      </div>
+
+      {%- comment -%} ---------- Tag index ---------- {%- endcomment -%}
+      <p class="zk-panel__label zk-panel__label--tags">TOPICS</p>
+      <div class="zk-tags" role="group" aria-label="Filter by topic">
+
+        <button type="button" class="zk-tag zk-tag--all is-active" data-zk-reset aria-pressed="true">
+          All notes<span class="zk-tag__count">{{ notes | size }}</span>
+        </button>
+
+        {%- for tag in all_tags -%}
+          {%- assign tag_count = tag_blob | where_exp: "t", "t == tag" | size -%}
+        <button type="button" class="zk-tag" data-zk-tag="{{ tag | escape }}" aria-pressed="false">
+          <span class="zk-tag__hash">#</span>{{ tag }}<span class="zk-tag__count">{{ tag_count }}</span>
+        </button>
+        {%- endfor -%}
+
+      </div>
+
+      <button type="button" class="zk-reset" id="zk-reset-all" hidden>Reset filters</button>
+
+    </div>
+  </aside>
+
+  {%- comment -%} ===================== B. The card grid ===================== {%- endcomment -%}
+  <div class="zk-main">
+
+    {%- comment -%}
+      A polite live region: screen readers hear "7 notes" after a filter change
+      instead of silence. Updated by the script, never by Liquid.
+    {%- endcomment -%}
+    <p class="zk-status zk-visually-hidden" role="status" aria-live="polite" id="zk-status"></p>
+
+    <div class="zk-grid" id="zk-grid">
+      {%- for note in notes -%}
+
+        {%- comment -%}
+          ---------- Backlink resolution (build time) ----------
+          Scan every other note's `links:` array for a reference to THIS note,
+          matched on either its slug or its Zettel number.
+
+          The needles are wrapped in the "|" delimiter before the substring
+          test, so that a note whose slug is "habits" is not credited with a
+          backlink from a link that actually points at "atomic-habits".
+        {%- endcomment -%}
+        {%- assign backlink_slugs = "" -%}
+        {%- assign note_slug = note.slug | downcase -%}
+        {%- assign needle_slug = note_slug | prepend: "|" | append: "|" -%}
+        {%- assign needle_id = note.note_id | downcase | prepend: "|" | append: "|" -%}
+
+        {%- for other in notes -%}
+          {%- if other.slug != note.slug and other.links -%}
+            {%- assign haystack = other.links | join: "|" | downcase | prepend: "|" | append: "|" -%}
+            {%- assign hit = false -%}
+            {%- if haystack contains needle_slug -%}{%- assign hit = true -%}{%- endif -%}
+            {%- if note.note_id and haystack contains needle_id -%}{%- assign hit = true -%}{%- endif -%}
+            {%- if hit -%}
+              {%- assign backlink_slugs = backlink_slugs | append: other.slug | append: " " -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endfor -%}
+
+        {%- assign backlink_list = backlink_slugs | split: " " -%}
+        {%- assign backlink_count = backlink_list | size -%}
+
+        {%- comment -%}
+          ---------- Card text ----------
+          Front-matter `excerpt:` wins when present (cleanest cards, and it
+          keeps stray LaTeX out of the preview); otherwise the body is
+          stripped down to plain text.
+        {%- endcomment -%}
+        {%- assign card_text = note.excerpt | default: note.content | strip_html | normalize_whitespace | strip -%}
+        {%- assign haystack_text = note.content | strip_html | normalize_whitespace | downcase -%}
+
+        {%- comment -%}
+          ---------- Post -> zettel provenance ----------
+          `source_post:` names the post this note was extracted from, by the
+          post's own slug (dateless — see _layouts/zettel.html).
+        {%- endcomment -%}
+        {%- assign source_post = false -%}
+        {%- if note.source_post -%}
+          {%- assign wanted_post = note.source_post | downcase -%}
+          {%- for p in site.posts -%}
+            {%- assign p_slug = p.slug | downcase -%}
+            {%- if p_slug == wanted_post -%}
+              {%- assign source_post = p -%}
+              {%- break -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+
+      <article class="zettel-card"
+               data-id="{{ note.note_id | default: '' | escape }}"
+               data-slug="{{ note.slug | escape }}"
+               data-title="{{ note.title | downcase | escape }}"
+               data-tags="{{ note.tags | join: ' ' | downcase | escape }}"
+               data-content="{{ haystack_text | escape }}"
+               data-url="{{ note.url | relative_url }}"
+               data-links="{{ note.links | join: ' ' | downcase | escape }}"
+               data-backlinks="{{ backlink_slugs | strip | escape }}"
+               data-date="{{ note.date | date: '%B %-d, %Y' }}"
+               {%- if source_post %}
+               data-source-post-title="{{ source_post.title | escape }}"
+               data-source-post-url="{{ source_post.url | relative_url }}"
+               {%- endif %}>
+
+        <header class="zettel-card__head">
+          <h2 class="zettel-card__title">
+            {%- comment -%}
+              A real link, so the card works with JavaScript disabled and
+              cmd/ctrl-click still opens the note in a new tab. The script
+              intercepts ordinary clicks to raise the modal instead.
+            {%- endcomment -%}
+            <a href="{{ note.url | relative_url }}">{{ note.title }}</a>
+          </h2>
+          {%- if note.note_id %}
+          <span class="zettel-card__id" title="Zettel {{ note.note_id }}">{{ note.note_id }}</span>
+          {%- endif %}
+        </header>
+
+        {%- if source_post %}
+        <p class="zettel-card__source" title="Extracted from &ldquo;{{ source_post.title | escape }}&rdquo;">
+          <svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm8 1.5V8h4.5L14 3.5z"/>
+          </svg>
+          from a post
+        </p>
+        {%- endif %}
+
+        <p class="zettel-card__excerpt">{{ card_text | truncatewords: 26 }}</p>
+
+        <footer class="zettel-card__foot">
+          <ul class="zettel-card__tags">
+            {%- for t in note.tags limit: 4 -%}
+              {%- assign t_norm = t | downcase | strip -%}
+            <li>
+              <button type="button" class="zettel-card__tag" data-zk-tag="{{ t_norm | escape }}">
+                #{{ t_norm }}
+              </button>
+            </li>
+            {%- endfor -%}
+          </ul>
+
+          <span class="zettel-card__backlinks{% if backlink_count == 0 %} is-orphan{% endif %}"
+                title="{{ backlink_count }} note{% unless backlink_count == 1 %}s{% endunless %} link{% if backlink_count == 1 %}s{% endif %} here">
+            <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true" focusable="false">
+              <path fill="currentColor" d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/>
+            </svg>
+            {{ backlink_count }}
+            <span class="zk-visually-hidden">incoming links</span>
+          </span>
+        </footer>
+      </article>
+
+      {%- endfor -%}
+    </div>
+
+    <p class="zk-empty" id="zk-empty" hidden>
+      No note matches that combination. <button type="button" class="zk-empty__reset" data-zk-reset>Clear the filters</button>
+    </p>
+
+  </div>
+</div>
+
+{%- comment -%}
+  ===================== C. Modal shell =====================
+  Empty on load; the script fills it from the clicked card and, for the body,
+  from a fetch of the note's own page (cached after the first open).
+{%- endcomment -%}
+<div class="zk-modal" id="zk-modal" hidden>
+  <div class="zk-modal__scrim" data-zk-close></div>
+
+  <div class="zk-modal__panel" role="dialog" aria-modal="true" aria-labelledby="zk-modal-title">
+    <button type="button" class="zk-modal__close" data-zk-close aria-label="Close preview">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+      </svg>
+    </button>
+
+    <header class="zk-modal__head">
+      <span class="zk-modal__id" id="zk-modal-id"></span>
+      <h2 class="zk-modal__title" id="zk-modal-title"></h2>
+      <p class="zk-modal__date" id="zk-modal-date"></p>
+      <p class="zk-modal__source" id="zk-modal-source" hidden></p>
+      <ul class="zk-modal__tags" id="zk-modal-tags"></ul>
+    </header>
+
+    <div class="zk-modal__body post__content" id="zk-modal-body"></div>
+
+    <div class="zk-modal__links" id="zk-modal-links"></div>
+
+    <footer class="zk-modal__foot">
+      <a class="zk-modal__permalink" id="zk-modal-permalink" href="#">Open the full note &rarr;</a>
+    </footer>
+  </div>
+</div>
+
+{%- comment -%}
+  ===================== D. Lookup index =====================
+  Metadata only (no bodies), so the payload stays a couple of kB even with
+  hundreds of notes. The script uses it to turn a slug or a Zettel number in
+  `links:` into a real title and URL — and to mark links that point at a note
+  that does not exist yet.
+{%- endcomment -%}
+<script id="zk-index" type="application/json">
+{
+{%- for note in notes -%}
+{{ note.slug | jsonify }}: {
+  "noteId": {{ note.note_id | default: "" | jsonify }},
+  "title": {{ note.title | jsonify }},
+  "url": {{ note.url | relative_url | jsonify }}
+}{% unless forloop.last %},{% endunless %}
+{%- endfor -%}
+}
+</script>

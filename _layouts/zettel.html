@@ -1,0 +1,150 @@
+---
+layout: default
+---
+{%- comment -%}
+================================================================================
+  ZETTEL — single note page
+  ------------------------------------------------------------------------------
+  The page a card links to. It reuses the site's own .page-wrap / .post /
+  .post__content classes, so a note reads exactly like a post, only shorter and
+  with its links surfaced underneath.
+
+  #post-content is deliberately absent: that id is what triggers the table of
+  contents builder in default.html, and an atomic note has no need of one.
+  `data-zettel-body` is the hook the modal on /zettelkasten/ fetches instead.
+================================================================================
+{%- endcomment -%}
+
+{%- assign notes = site.zettels -%}
+{%- assign note_slug = page.slug | downcase -%}
+{%- assign needle_slug = note_slug | prepend: "|" | append: "|" -%}
+{%- assign needle_id = page.note_id | downcase | prepend: "|" | append: "|" -%}
+
+{%- comment -%}
+  ---------- Post -> zettel: where this note came from ----------
+  `source_post:` names the ORIGINATING post by its slug (`page.slug` on a
+  post drops the date — "2026-05-01-two-minds-about-habits.md" has slug
+  "two-minds-about-habits"). Matched against site.posts, not site.zettels.
+{%- endcomment -%}
+{%- assign source_post = false -%}
+{%- if page.source_post -%}
+  {%- assign wanted_post = page.source_post | downcase -%}
+  {%- for p in site.posts -%}
+    {%- assign p_slug = p.slug | downcase -%}
+    {%- if p_slug == wanted_post -%}
+      {%- assign source_post = p -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+<div class="page-wrap">
+  <article class="post">
+
+    <header class="post__header">
+      {%- if page.note_id %}
+      <span class="zettel-page__id">{{ page.note_id }}</span>
+      {%- endif %}
+      <h1 class="post__title">{{ page.title }}</h1>
+      <p class="post__date">
+        <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%B %-d, %Y" }}</time>
+      </p>
+      {%- if source_post %}
+      <p class="zettel-page__source">
+        Extracted from <a href="{{ source_post.url | relative_url }}">{{ source_post.title }}</a>
+      </p>
+      {%- elsif page.source_post %}
+      <p class="zettel-page__source zettel-page__source--missing">
+        Extracted from a post ({{ page.source_post }}) that isn&rsquo;t published yet
+      </p>
+      {%- endif %}
+    </header>
+
+    <div class="post__content" data-zettel-body>
+      {{ content }}
+    </div>
+
+    <div class="zettel-page__links">
+
+      {%- comment -%} ---------- Outgoing ---------- {%- endcomment -%}
+      {%- if page.links and page.links != empty %}
+      <div class="zk-links-group">
+        <p class="zk-links-group__label">LINKS TO</p>
+        <ul>
+          {%- for token in page.links -%}
+            {%- assign token_norm = token | downcase -%}
+            {%- assign hit = false -%}
+            {%- for other in notes -%}
+              {%- assign other_slug = other.slug | downcase -%}
+              {%- assign other_id = other.note_id | downcase -%}
+              {%- if other_slug == token_norm or other_id == token_norm -%}
+                {%- assign hit = other -%}
+                {%- break -%}
+              {%- endif -%}
+            {%- endfor -%}
+          <li>
+            {%- if hit -%}
+              <a href="{{ hit.url | relative_url }}">
+                {%- if hit.note_id %}<span class="zk-link-num">{{ hit.note_id }}</span>{% endif -%}
+                {{ hit.title }}
+              </a>
+            {%- else -%}
+              <span class="zk-link-missing">{{ token }} &mdash; not written yet</span>
+            {%- endif -%}
+          </li>
+          {%- endfor -%}
+        </ul>
+      </div>
+      {%- endif %}
+
+      {%- comment -%} ---------- Incoming (same matching rule as the index) ---------- {%- endcomment -%}
+      {%- assign backlinks = "" -%}
+      {%- for other in notes -%}
+        {%- if other.slug != page.slug and other.links -%}
+          {%- assign haystack = other.links | join: "|" | downcase | prepend: "|" | append: "|" -%}
+          {%- assign is_backlink = false -%}
+          {%- if haystack contains needle_slug -%}{%- assign is_backlink = true -%}{%- endif -%}
+          {%- if page.note_id and haystack contains needle_id -%}{%- assign is_backlink = true -%}{%- endif -%}
+          {%- if is_backlink -%}{%- assign backlinks = backlinks | append: other.slug | append: "|" -%}{%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- assign backlink_slugs = backlinks | split: "|" -%}
+
+      {%- if backlink_slugs.size > 0 %}
+      <div class="zk-links-group">
+        <p class="zk-links-group__label">LINKED FROM</p>
+        <ul>
+          {%- for slug in backlink_slugs -%}
+            {%- for other in notes -%}
+              {%- if other.slug == slug -%}
+          <li>
+            <a href="{{ other.url | relative_url }}">
+              {%- if other.note_id %}<span class="zk-link-num">{{ other.note_id }}</span>{% endif -%}
+              {{ other.title }}
+            </a>
+          </li>
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endfor -%}
+        </ul>
+      </div>
+      {%- endif %}
+
+      {%- comment -%} ---------- Topics ---------- {%- endcomment -%}
+      {%- if page.tags and page.tags != empty %}
+      <div class="zk-links-group">
+        <p class="zk-links-group__label">TOPICS</p>
+        <ul class="zk-modal__tags">
+          {%- for t in page.tags -%}
+            {%- assign t_norm = t | downcase -%}
+          <li><a href="{{ '/zettelkasten/' | relative_url }}?tag={{ t_norm | uri_escape }}">#{{ t_norm }}</a></li>
+          {%- endfor -%}
+        </ul>
+      </div>
+      {%- endif %}
+
+      <a class="zettel-page__back" href="{{ '/zettelkasten/' | relative_url }}">&larr; Back to the slip-box</a>
+    </div>
+
+  </article>
+</div>

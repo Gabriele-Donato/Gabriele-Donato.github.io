@@ -1,0 +1,753 @@
+/* ==========================================================================
+   ZETTELKASTEN
+   --------------------------------------------------------------------------
+   Loaded only on /zettelkasten/ and on single note pages.
+
+   It inherits every colour, face and metric from the site's own tokens in
+   assets/css/style.scss (--ink, --rule, --bg, --link, --font-serif …) and adds
+   only what an index card needs. Nothing here overrides a global rule, so this
+   file can be dropped in or removed without touching the rest of the site.
+
+   Plain .css on purpose: Jekyll copies it verbatim, which means no SCSS
+   compile step and no front matter. The <link> in _layouts/default.html
+   carries a ?v= cache-buster, so the browser can never serve you a stale copy
+   the way it did with post-toc.js.
+   ========================================================================== */
+
+/* ==========================================================================
+   Local tokens
+   --------------------------------------------------------------------------
+   On :root, not on .zk — the modal and the single-note page live outside the
+   grid wrapper and need the same paper colours.
+   ========================================================================== */
+:root {
+  --zk-card:        #fdfbf7;   /* index-card cream                          */
+  --zk-card-edge:   #e6e2d9;   /* warmer than --rule, reads as paper edge   */
+  --zk-card-lift:   0 1px 2px rgba(59, 59, 59, .05), 0 4px 14px rgba(59, 59, 59, .06);
+  --zk-card-lift-2: 0 2px 4px rgba(59, 59, 59, .07), 0 10px 26px rgba(59, 59, 59, .11);
+  --zk-rule-red:    #d9c3bd;   /* the ruled line on a real 3x5 card         */
+  --zk-panel-w:     248px;
+  --zk-gap:         22px;
+}
+
+/* The site's stylesheet has no global [hidden] rule, and a `display` of our
+   own would beat the browser's default one — so state it explicitly. */
+.zk [hidden],
+.zk-modal[hidden] { display: none !important; }
+
+/* ---- lead-in: page title + any prose from zettelkasten.md ---------------- */
+.zk-intro {
+  width: min(680px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 72px 0 0;
+  text-align: center;
+}
+.zk-intro .post__title { margin-bottom: 16px; }
+.zk-intro__text {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+.zk-intro__text p { margin: 0 0 14px; }
+.zk-intro__text > *:last-child { margin-bottom: 0; }
+/* the grid's own top padding would double up under the lead-in */
+.zk-intro + .zk { padding-top: 48px; }
+
+.zk {
+  /* ---- page shell -------------------------------------------------------
+     Same outer width as .post-wrap, so the Zettelkasten lines up with the
+     rest of the site instead of floating at its own margin.                */
+  display: grid;
+  grid-template-columns: var(--zk-panel-w) minmax(0, 1fr);
+  column-gap: 52px;
+  align-items: start;
+  width: min(1240px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 72px 0 24px;
+}
+
+/* Visually hidden, still read aloud. */
+.zk-visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  clip: rect(0 0 0 0); clip-path: inset(50%);
+  overflow: hidden; white-space: nowrap;
+}
+
+/* ==========================================================================
+   A. Control panel
+   ========================================================================== */
+.zk-panel { min-width: 0; }
+
+.zk-panel__sticky {
+  position: sticky;
+  top: 28px;
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+}
+
+/* same label treatment as CONTENTS in the TOC rail */
+.zk-panel__label {
+  margin: 0 0 4px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  color: var(--ink-faint);
+}
+.zk-panel__label--tags { margin-top: 30px; }
+
+.zk-panel__count {
+  margin: 0 0 18px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+/* ---------- search ---------- */
+.zk-search { position: relative; }
+
+.zk-search__icon {
+  position: absolute;
+  left: 11px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.zk-search__input {
+  width: 100%;
+  padding: 10px 34px 10px 34px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--ink);
+  background: var(--zk-card);
+  border: 1px solid var(--zk-card-edge);
+  border-radius: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.zk-search__input::placeholder { color: var(--ink-faint); }
+.zk-search__input:focus {
+  outline: 0;
+  border-color: var(--title-link);
+  box-shadow: 0 0 0 3px rgba(138, 185, 209, .22);
+}
+/* the browser's own clear affordance would sit on top of ours */
+.zk-search__input::-webkit-search-cancel-button,
+.zk-search__input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+
+.zk-search__clear {
+  position: absolute;
+  right: 5px; top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  color: var(--ink-faint);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.zk-search__clear:hover { color: var(--ink); background: rgba(128, 128, 128, .12); }
+.zk-search__clear:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+
+/* ---------- tag pills ---------- */
+.zk-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.zk-tag {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  max-width: 100%;
+  padding: 5px 10px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink-muted);
+  background: var(--zk-card);
+  border: 1px solid var(--zk-card-edge);
+  border-radius: 999px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: color .16s ease, background-color .16s ease, border-color .16s ease;
+}
+.zk-tag:hover { color: var(--ink); border-color: var(--ink-faint); }
+.zk-tag:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.zk-tag.is-active {
+  color: #fff;
+  background: var(--link);
+  border-color: var(--link);
+}
+.zk-tag.is-active .zk-tag__count,
+.zk-tag.is-active .zk-tag__hash { color: rgba(255, 255, 255, .72); }
+
+/* a topic with nothing left to show under the current search */
+.zk-tag.is-empty { opacity: .38; }
+
+.zk-tag__hash { color: var(--ink-faint); }
+
+.zk-tag__count {
+  margin-left: 4px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.zk-tag--all { font-weight: 700; letter-spacing: .02em; }
+
+.zk-reset {
+  display: block;
+  margin: 18px 0 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--link);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  cursor: pointer;
+}
+.zk-reset:hover { color: var(--link-hover); }
+
+/* ==========================================================================
+   B. Card grid
+   ========================================================================== */
+.zk-main { min-width: 0; }
+
+.zk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: var(--zk-gap);
+  align-items: start;
+}
+
+/* ---------- the card ----------
+   A 3x5 index card: cream stock, a hairline edge, and the ruled line that
+   runs under the header on the real thing. Equal heights per row on purpose —
+   a masonry stagger fights the "cards squared up on a desk" reading, and
+   true CSS masonry is not shippable yet. */
+.zettel-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 190px;
+  padding: 18px 18px 14px;
+  background: var(--zk-card);
+  border: 1px solid var(--zk-card-edge);
+  border-radius: 3px;
+  box-shadow: var(--zk-card-lift);
+  cursor: pointer;
+  transform-origin: 50% 50%;
+  transition: opacity .18s ease, transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.zettel-card:hover {
+  border-color: #d8d2c6;
+  box-shadow: var(--zk-card-lift-2);
+  transform: translateY(-2px);
+}
+.zettel-card:focus-within {
+  border-color: var(--title-link);
+  box-shadow: var(--zk-card-lift-2);
+}
+
+/* ---------- filtering ----------
+   Two classes, so the fade can finish before the card leaves the grid flow:
+   .is-hidden animates it out, .is-gone removes it from layout afterwards. */
+.zettel-card.is-hidden { opacity: 0; transform: scale(.965); pointer-events: none; }
+.zettel-card.is-gone   { display: none; }
+
+/* ---------- card header ---------- */
+.zettel-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 11px;
+  margin-bottom: 11px;
+  border-bottom: 1px solid var(--zk-rule-red);
+}
+
+.zettel-card__title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-style: italic;            /* same treatment as .post-list__title */
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0;
+  min-width: 0;
+}
+.zettel-card__title a {
+  color: var(--title-link);
+  text-decoration: none;
+  transition: color .16s ease;
+}
+.zettel-card:hover .zettel-card__title a { color: var(--title-hover); }
+
+.zettel-card__id {
+  flex: none;
+  margin-top: 2px;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  color: var(--ink-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--zk-card-edge);
+  border-radius: 2px;
+}
+
+/* ---------- card body ---------- */
+.zettel-card__excerpt {
+  flex: 1 1 auto;
+  margin: 0 0 14px;
+  font-family: var(--font-serif);
+  font-size: 16.5px;
+  line-height: 1.45;
+  color: var(--ink);
+
+  /* three lines, then an ellipsis */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---------- provenance: this note was extracted from a post ---------- */
+.zettel-card__source {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 10px;
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--ink-faint);
+}
+.zettel-card__source svg { flex: none; opacity: .8; }
+
+.zk-modal__source {
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.zk-modal__source a { color: var(--link); }
+
+.zettel-page__source {
+  margin: 12px 0 0;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+.zettel-page__source a { color: var(--link); }
+.zettel-page__source--missing { color: var(--ink-faint); font-style: italic; }
+
+/* the "built from these notes" block on a post reuses .zk-links-group as-is;
+   only the top spacing needs to match the post's own rhythm */
+.post__built-from { margin-top: 56px; padding-top: 28px; border-top: 1px solid var(--rule); }
+
+/* ---------- card footer ---------- */
+.zettel-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.zettel-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 5px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.zettel-card__tag {
+  padding: 2px 7px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--ink-muted);
+  background: var(--bg-soft);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: color .16s ease, background-color .16s ease, border-color .16s ease;
+}
+.zettel-card__tag:hover { color: var(--link); border-color: var(--zk-card-edge); }
+.zettel-card__tag.is-active { color: #fff; background: var(--link); border-color: var(--link); }
+.zettel-card__tag:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+
+.zettel-card__backlinks {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+.zettel-card__backlinks svg { display: block; opacity: .7; }
+/* a note nothing points at yet — the slip-box's loose end */
+.zettel-card__backlinks.is-orphan { color: var(--ink-faint); opacity: .55; }
+
+/* ---------- empty state ---------- */
+.zk-empty {
+  margin: 40px 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--ink-muted);
+}
+.zk-empty__reset {
+  padding: 0;
+  font: inherit;
+  color: var(--link);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   C. Modal preview
+   ========================================================================== */
+.zk-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 6500;               /* above the drawer (6000) in style.scss */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 6vh 20px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.zk-modal[hidden] { display: none; }
+
+.zk-modal__scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .42);
+  opacity: 0;
+  transition: opacity .24s ease;
+}
+
+.zk-modal__panel {
+  position: relative;
+  width: min(680px, 100%);      /* the site's --measure reading width */
+  margin-bottom: 6vh;
+  padding: 40px 44px 32px;
+  background: var(--zk-card);
+  border: 1px solid var(--zk-card-edge);
+  border-radius: 4px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, .22);
+  opacity: 0;
+  transform: translateY(14px) scale(.985);
+  transition: opacity .24s ease, transform .24s cubic-bezier(.4, 0, .2, 1);
+}
+
+.zk-modal.is-open .zk-modal__scrim { opacity: 1; }
+.zk-modal.is-open .zk-modal__panel { opacity: 1; transform: none; }
+
+.zk-modal__close {
+  position: absolute;
+  top: 10px; right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px; height: 38px;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.zk-modal__close:hover { color: var(--ink); background: rgba(128, 128, 128, .12); }
+
+/* ---------- modal header ---------- */
+.zk-modal__head {
+  padding-bottom: 20px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--zk-rule-red);
+}
+
+.zk-modal__id {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 2px 7px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--zk-card-edge);
+  border-radius: 2px;
+}
+.zk-modal__id:empty { display: none; }
+
+.zk-modal__title {
+  margin: 0 0 10px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.18;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.zk-modal__date {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.zk-modal__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+.zk-modal__tags:empty { display: none; }
+.zk-modal__tags button,
+.zk-modal__tags a {                 /* the note page renders these as links */
+  padding: 3px 9px;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  background: var(--bg-soft);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.zk-modal__tags a { text-decoration: none; }
+.zk-modal__tags button:hover,
+.zk-modal__tags a:hover { color: var(--link); border-color: var(--zk-card-edge); }
+
+/* the note page reuses .zk-links-group for TOPICS; pills, not rules */
+.zettel-page__links .zk-modal__tags a { display: inline-block; border-left: 0; padding: 3px 9px; }
+
+/* ---------- modal body ----------
+   .post__content in style.scss already styles headings, lists, code, tables
+   and MathJax containers; only the size is dialled back for the panel. */
+.zk-modal__body { font-size: 19px; line-height: 1.5; }
+.zk-modal__body p { margin: 0 0 20px; }
+.zk-modal__body h2 { font-size: 25px; }
+.zk-modal__body h3 { font-size: 21px; }
+.zk-modal__body > *:last-child { margin-bottom: 0; }
+
+.zk-modal__loading {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--ink-faint);
+}
+
+/* ---------- bidirectional links ---------- */
+.zk-modal__links:empty { display: none; }
+
+.zk-links-group { margin-top: 30px; }
+.zk-links-group + .zk-links-group { margin-top: 22px; }
+
+.zk-links-group__label {
+  margin: 0 0 10px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  color: var(--ink-faint);
+}
+
+.zk-links-group ul { list-style: none; margin: 0; padding: 0; }
+.zk-links-group li { margin: 0; }
+
+.zk-links-group a,
+.zk-links-group .zk-link-missing {
+  display: block;
+  padding: 8px 0 8px 13px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--ink-muted);
+  text-decoration: none;
+  border-left: 2px solid var(--rule);
+}
+.zk-links-group a:hover { color: var(--link); border-left-color: var(--link); }
+
+.zk-links-group .zk-link-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-right: 7px;
+}
+
+/* a link whose target has not been written yet */
+.zk-link-missing { color: var(--ink-faint); font-style: italic; }
+
+.zk-modal__foot {
+  margin-top: 32px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+}
+.zk-modal__permalink {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--link);
+  text-decoration: none;
+}
+.zk-modal__permalink:hover { color: var(--link-hover); }
+
+/* page behind the modal must not scroll */
+body.zk-locked { overflow: hidden; }
+
+/* ==========================================================================
+   D. Single note page (_layouts/zettel.html)
+   ========================================================================== */
+.zettel-page__id {
+  display: inline-block;
+  margin-bottom: 14px;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--zk-card-edge);
+  border-radius: 2px;
+}
+
+.zettel-page__links {
+  margin-top: 56px;
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+}
+.zettel-page__back {
+  display: inline-block;
+  margin-top: 34px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--link);
+  text-decoration: none;
+}
+
+/* ==========================================================================
+   E. Breakpoints
+   ========================================================================== */
+
+/* Tablet: the panel goes above the grid and stops being sticky-tall. */
+@media (max-width: 1023px) {
+  .zk {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 34px;
+    width: min(760px, calc(100% - 40px));
+    padding-top: 56px;
+  }
+
+  .zk-panel__sticky {
+    position: sticky;
+    top: 0;
+    max-height: none;
+    padding: 14px 0 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--rule);
+    z-index: 20;
+  }
+
+  .zk-panel__label { margin-bottom: 6px; }
+  .zk-panel__count { margin-bottom: 12px; }
+  .zk-panel__label--tags { margin-top: 18px; }
+
+  /* one scrollable row of pills instead of a tall stack */
+  .zk-tags {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .zk-tag { flex: none; }
+
+  .zk-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .zk { width: calc(100% - 32px); padding-top: 40px; }
+
+  .zk-intro { width: calc(100% - 32px); padding-top: 40px; }
+  .zk-intro .post__title { font-size: 32px; }
+  .zk-intro__text { font-size: 17.5px; }
+  .zk-intro + .zk { padding-top: 32px; }
+
+  .zk-grid { grid-template-columns: 1fr; gap: 16px; }
+
+  .zettel-card { min-height: 0; padding: 16px; }
+  .zettel-card__title { font-size: 19.5px; }
+  .zettel-card__excerpt { font-size: 16px; }
+
+  .zk-modal { padding: 0; align-items: stretch; }
+  .zk-modal__panel {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 34px 22px 28px;
+    border: 0;
+    border-radius: 0;
+  }
+  .zk-modal__title { font-size: 27px; }
+  .zk-modal__body { font-size: 17.5px; }
+}
+
+/* ==========================================================================
+   F. Motion / print
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .zettel-card,
+  .zk-modal__panel,
+  .zk-modal__scrim { transition: none !important; }
+  .zettel-card:hover { transform: none; }
+}
+
+@media print {
+  .zk { display: block; width: 100%; padding: 0; }
+  .zk-panel, .zk-modal { display: none !important; }
+  .zk-grid { display: block; }
+  .zettel-card { break-inside: avoid; box-shadow: none; margin-bottom: 14px; }
+  .zettel-card.is-hidden, .zettel-card.is-gone { display: none !important; }
+}
