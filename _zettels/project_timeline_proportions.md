@@ -2,7 +2,7 @@
 title: "Project Timeline Proportions"
 note_id: "2"
 date: 2026-09-06
-tags: [cps, timeline, project management, project planning, time allotment, the mythical man month, brooks]
+tags: [cps, timeline, project_management, mythical_man_month, brooks]
 excerpt: "Brooks' project timeline proportions are strikingly asymmetric, but have a wide range of re-applicability."
 ---
 

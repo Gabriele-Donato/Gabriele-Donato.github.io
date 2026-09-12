@@ -2,7 +2,7 @@
 title: "Box Muller Transform Derivation Steps"
 note_id: "1"
 date: 2026-09-06
-tags: [random numbers, MCMC, monte carlo, bayesian statistics, gaussian random numbers]
+tags: [random_numbers, MCMC, monte_carlo, bayesian_statistics, gaussian_random_numbers]
 excerpt: "Steps to derive the Box-Muller transform."
 ---
 
