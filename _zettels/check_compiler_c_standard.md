@@ -6,7 +6,7 @@ tags: [c_standard]
 excerpt: "Meaning and code for checking gcc standard"
 ---
 
-<pre><code class="language-bash">gcc --version</code></pre>
+
 
 
 **Meaning:**
