@@ -5,8 +5,11 @@
   - 1b MCMC
   - 1c Random Number Generation
     - 1c1 [Box Muller Derivation](./_zettels/1c1.md)
-  - 1d Scientific Computing in C
+  - 1d C & C for Science
     - 1d1 [Check compiler standard](./_zettels/1d1.md)
+    - 1d2 [On implicit float-to-double type change](./_zettels/1d2.md)
+    - 1d3 [Storage Class Specifiers](./_zettels/1d3.md)
+    - 1d4 [Memory structure of C programs](./_zettels/1d4.md)
 
 ---
 - 2 Statistics
